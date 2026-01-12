@@ -43,9 +43,9 @@ extension RFC_8259 {
     }
 }
 
-// MARK: - Array RandomAccessCollection
+// MARK: - Array RandomAccessCollection + MutableCollection
 
-extension RFC_8259.Array: RandomAccessCollection {
+extension RFC_8259.Array: RandomAccessCollection, MutableCollection {
     public typealias Index = Int
     public typealias Element = RFC_8259.Value
 
@@ -60,14 +60,6 @@ extension RFC_8259.Array: RandomAccessCollection {
         _storage.index(before: i)
     }
 
-    public subscript(position: Int) -> RFC_8259.Value {
-        get { _storage[position] }
-    }
-}
-
-// MARK: - Array MutableCollection
-
-extension RFC_8259.Array: MutableCollection {
     public subscript(position: Int) -> RFC_8259.Value {
         get { _storage[position] }
         set { _storage[position] = newValue }

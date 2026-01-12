@@ -46,10 +46,10 @@ extension RFC_8259 {
     /// Whitespace is insignificant except within strings.
     @usableFromInline
     static let whitespace: Set<UInt8> = [
-        0x20,  // Space
-        0x09,  // Horizontal tab
-        0x0A,  // Line feed (newline)
-        0x0D,  // Carriage return
+        .ascii.sp,      // Space (0x20)
+        .ascii.htab,    // Horizontal tab (0x09)
+        .ascii.lf,      // Line feed (0x0A)
+        .ascii.cr,      // Carriage return (0x0D)
     ]
 
     /// Returns true if the byte is JSON whitespace.

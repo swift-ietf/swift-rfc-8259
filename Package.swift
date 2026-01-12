@@ -18,7 +18,8 @@ let package = Package(
         .package(path: "../../swift-primitives/swift-standard-library-extensions"),
         .package(path: "../../swift-primitives/swift-parsing-primitives"),
         .package(path: "../../swift-primitives/swift-binary-primitives"),
-        .package(path: "../swift-incits-4-1986"),
+        .package(path: "../../swift-primitives/swift-container-primitives"),
+        .package(path: "../../swift-foundations/swift-ascii"),
     ],
     targets: [
         .target(
@@ -27,7 +28,8 @@ let package = Package(
                 .product(name: "Standard Library Extensions", package: "swift-standard-library-extensions"),
                 .product(name: "Parsing Primitives", package: "swift-parsing-primitives"),
                 .product(name: "Binary Primitives", package: "swift-binary-primitives"),
-                .product(name: "INCITS 4 1986", package: "swift-incits-4-1986"),
+                .product(name: "Container Primitives", package: "swift-container-primitives"),
+                .product(name: "ASCII", package: "swift-ascii"),
             ]
         ),
         .testTarget(
