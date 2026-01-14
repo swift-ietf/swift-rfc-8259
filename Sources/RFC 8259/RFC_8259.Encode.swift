@@ -37,6 +37,7 @@ extension RFC_8259 {
         @inlinable
         public func callAsFunction(options: Options = Options()) -> [UInt8] {
             var buffer: [UInt8] = []
+            buffer.reserveCapacity(size())
             callAsFunction(into: &buffer, options: options)
             return buffer
         }
@@ -55,6 +56,58 @@ extension RFC_8259 {
             encoder.encode(value, into: &buffer)
         }
     }
+}
+
+// MARK: - Size Estimation
+
+extension RFC_8259.Encode {
+    /// Estimates serialized size for buffer preallocation.
+    public struct Size: Sendable {
+        public let value: RFC_8259.Value
+
+        @usableFromInline
+        internal init(_ value: RFC_8259.Value) {
+            self.value = value
+        }
+
+        /// Returns estimated byte count.
+        @inlinable
+        public func callAsFunction() -> Int {
+            estimate(value)
+        }
+
+        @usableFromInline
+        func estimate(_ value: RFC_8259.Value) -> Int {
+            switch value {
+            case .null:
+                return 4
+            case .bool:
+                return 5
+            case .number(let n):
+                return n.original.bytes.count
+            case .string(let s):
+                // quotes + string length + ~12% for escapes
+                return s.utf8.count + 2 + (s.utf8.count / 8)
+            case .array(let a):
+                // brackets + elements + commas
+                var size = 2
+                for element in a {
+                    size += estimate(element) + 1
+                }
+                return size
+            case .object(let o):
+                // braces + keys + colons + values + commas
+                var size = 2
+                for (key, val) in o {
+                    size += key.utf8.count + 3 + estimate(val) + 1
+                }
+                return size
+            }
+        }
+    }
+
+    /// Accessor for size estimation.
+    public var size: Size { Size(value) }
 }
 
 // MARK: - Encode Options
@@ -109,13 +162,47 @@ extension RFC_8259 {
         let options: Options
 
         @usableFromInline
-        var depth: Int = 0
+        let indent: [UInt8]
+
+        @usableFromInline
+        var depth: Int
 
         @usableFromInline
         init(options: Options) {
             self.options = options
+            self.indent = Swift.Array(options.indent.utf8)
+            self.depth = 0
         }
     }
+}
+
+// MARK: - Encoder Constants
+
+extension RFC_8259.Encoder {
+    /// Hex digit lookup table (0-15 → '0'-'9', 'a'-'f').
+    @usableFromInline
+    static let hexDigits: [UInt8] = [
+        .ascii.`0`, .ascii.`1`, .ascii.`2`, .ascii.`3`,
+        .ascii.`4`, .ascii.`5`, .ascii.`6`, .ascii.`7`,
+        .ascii.`8`, .ascii.`9`, .ascii.a, .ascii.b,
+        .ascii.c, .ascii.d, .ascii.e, .ascii.f
+    ]
+
+    // Keywords
+    @usableFromInline static let keywordNull: [UInt8] = [.ascii.n, .ascii.u, .ascii.l, .ascii.l]
+    @usableFromInline static let keywordTrue: [UInt8] = [.ascii.t, .ascii.r, .ascii.u, .ascii.e]
+    @usableFromInline static let keywordFalse: [UInt8] = [.ascii.f, .ascii.a, .ascii.l, .ascii.s, .ascii.e]
+
+    // Escape sequences (static to avoid allocating arrays in hot path)
+    @usableFromInline static let escapeQuote: [UInt8] = [.ascii.reverseSlant, .ascii.quotationMark]
+    @usableFromInline static let escapeBackslash: [UInt8] = [.ascii.reverseSlant, .ascii.reverseSlant]
+    @usableFromInline static let escapeSlash: [UInt8] = [.ascii.reverseSlant, .ascii.solidus]
+    @usableFromInline static let escapeBackspace: [UInt8] = [.ascii.reverseSlant, .ascii.b]
+    @usableFromInline static let escapeFormfeed: [UInt8] = [.ascii.reverseSlant, .ascii.f]
+    @usableFromInline static let escapeNewline: [UInt8] = [.ascii.reverseSlant, .ascii.n]
+    @usableFromInline static let escapeCarriageReturn: [UInt8] = [.ascii.reverseSlant, .ascii.r]
+    @usableFromInline static let escapeTab: [UInt8] = [.ascii.reverseSlant, .ascii.t]
+    @usableFromInline static let escapeUnicodePrefix: [UInt8] = [.ascii.reverseSlant, .ascii.u]
 }
 
 extension RFC_8259.Encoder {
@@ -127,13 +214,13 @@ extension RFC_8259.Encoder {
     ) where Buffer.Element == UInt8 {
         switch value {
         case .null:
-            buffer.append(contentsOf: [.ascii.n, .ascii.u, .ascii.l, .ascii.l]) // null
+            buffer.append(contentsOf: Self.keywordNull)
 
         case .bool(true):
-            buffer.append(contentsOf: [.ascii.t, .ascii.r, .ascii.u, .ascii.e]) // true
+            buffer.append(contentsOf: Self.keywordTrue)
 
         case .bool(false):
-            buffer.append(contentsOf: [.ascii.f, .ascii.a, .ascii.l, .ascii.s, .ascii.e]) // false
+            buffer.append(contentsOf: Self.keywordFalse)
 
         case .number(let n):
             // Use original bytes for lossless round-trip
@@ -162,37 +249,35 @@ extension RFC_8259.Encoder {
             let value = scalar.value
 
             switch value {
-            case UInt32(UInt8.ascii.quotationMark): // "
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.quotationMark]) // \"
+            case UInt32(UInt8.ascii.quotationMark):
+                buffer.append(contentsOf: Self.escapeQuote)
 
-            case UInt32(UInt8.ascii.reverseSlant): // \
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.reverseSlant]) // \\
+            case UInt32(UInt8.ascii.reverseSlant):
+                buffer.append(contentsOf: Self.escapeBackslash)
 
-            case UInt32(UInt8.ascii.solidus) where options.escapeSlashes: // /
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.solidus]) // \/
+            case UInt32(UInt8.ascii.solidus) where options.escapeSlashes:
+                buffer.append(contentsOf: Self.escapeSlash)
 
-            case UInt32(UInt8.ascii.bs): // backspace
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.b]) // \b
+            case UInt32(UInt8.ascii.bs):
+                buffer.append(contentsOf: Self.escapeBackspace)
 
-            case UInt32(UInt8.ascii.ff): // form feed
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.f]) // \f
+            case UInt32(UInt8.ascii.ff):
+                buffer.append(contentsOf: Self.escapeFormfeed)
 
-            case UInt32(UInt8.ascii.lf): // newline
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.n]) // \n
+            case UInt32(UInt8.ascii.lf):
+                buffer.append(contentsOf: Self.escapeNewline)
 
-            case UInt32(UInt8.ascii.cr): // carriage return
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.r]) // \r
+            case UInt32(UInt8.ascii.cr):
+                buffer.append(contentsOf: Self.escapeCarriageReturn)
 
-            case UInt32(UInt8.ascii.htab): // tab
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.t]) // \t
+            case UInt32(UInt8.ascii.htab):
+                buffer.append(contentsOf: Self.escapeTab)
 
-            case 0x00...0x1F: // Other control characters
-                // \uXXXX
-                buffer.append(contentsOf: [.ascii.reverseSlant, .ascii.u]) // \u
+            case 0x00...0x1F: // Other control characters → \uXXXX
+                buffer.append(contentsOf: Self.escapeUnicodePrefix)
                 encodeHex(UInt16(value), into: &buffer)
 
             default:
-                // Regular UTF-8 character - encode directly without String allocation
                 encodeScalarUTF8(scalar, into: &buffer)
             }
         }
@@ -216,19 +301,25 @@ extension RFC_8259.Encoder {
             buffer.append(UInt8(v))
         case 0x80...0x7FF:
             // 2-byte: 110xxxxx 10xxxxxx
-            buffer.append(UInt8(0xC0 | (v >> 6)))
-            buffer.append(UInt8(0x80 | (v & 0x3F)))
+            buffer.append(contentsOf: [
+                UInt8(0xC0 | (v >> 6)),
+                UInt8(0x80 | (v & 0x3F))
+            ])
         case 0x800...0xFFFF:
             // 3-byte: 1110xxxx 10xxxxxx 10xxxxxx
-            buffer.append(UInt8(0xE0 | (v >> 12)))
-            buffer.append(UInt8(0x80 | ((v >> 6) & 0x3F)))
-            buffer.append(UInt8(0x80 | (v & 0x3F)))
+            buffer.append(contentsOf: [
+                UInt8(0xE0 | (v >> 12)),
+                UInt8(0x80 | ((v >> 6) & 0x3F)),
+                UInt8(0x80 | (v & 0x3F))
+            ])
         default:
             // 4-byte: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (0x10000...0x10FFFF)
-            buffer.append(UInt8(0xF0 | (v >> 18)))
-            buffer.append(UInt8(0x80 | ((v >> 12) & 0x3F)))
-            buffer.append(UInt8(0x80 | ((v >> 6) & 0x3F)))
-            buffer.append(UInt8(0x80 | (v & 0x3F)))
+            buffer.append(contentsOf: [
+                UInt8(0xF0 | (v >> 18)),
+                UInt8(0x80 | ((v >> 12) & 0x3F)),
+                UInt8(0x80 | ((v >> 6) & 0x3F)),
+                UInt8(0x80 | (v & 0x3F))
+            ])
         }
     }
 
@@ -238,16 +329,10 @@ extension RFC_8259.Encoder {
         _ value: UInt16,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
-        let hexDigits: [UInt8] = [
-            .ascii.`0`, .ascii.`1`, .ascii.`2`, .ascii.`3`,
-            .ascii.`4`, .ascii.`5`, .ascii.`6`, .ascii.`7`,
-            .ascii.`8`, .ascii.`9`, .ascii.a, .ascii.b,
-            .ascii.c, .ascii.d, .ascii.e, .ascii.f
-        ]
-        buffer.append(hexDigits[Int((value >> 12) & 0x0F)])
-        buffer.append(hexDigits[Int((value >> 8) & 0x0F)])
-        buffer.append(hexDigits[Int((value >> 4) & 0x0F)])
-        buffer.append(hexDigits[Int(value & 0x0F)])
+        buffer.append(Self.hexDigits[Int((value >> 12) & 0x0F)])
+        buffer.append(Self.hexDigits[Int((value >> 8) & 0x0F)])
+        buffer.append(Self.hexDigits[Int((value >> 4) & 0x0F)])
+        buffer.append(Self.hexDigits[Int(value & 0x0F)])
     }
 
     /// Encodes an array.
@@ -297,42 +382,42 @@ extension RFC_8259.Encoder {
         precondition(depth < options.maxDepth, "JSON encoding exceeded maximum depth of \(options.maxDepth)")
         depth += 1
 
-        let members: [(key: String, value: RFC_8259.Value)]
+        var first = true
+
         if options.sortKeys {
             // Sort by UTF-8 bytes (lexicographic), not Unicode collation
-            members = object.sorted { lhs, rhs in
-                lhs.key.utf8.lexicographicallyPrecedes(rhs.key.utf8)
+            for (key, value) in object.sorted(by: { $0.key.utf8.lexicographicallyPrecedes($1.key.utf8) }) {
+                if !first { buffer.append(.ascii.comma) }
+                first = false
+                if options.prettyPrint {
+                    buffer.append(.ascii.lf)
+                    appendIndent(into: &buffer)
+                }
+                encodeString(key, into: &buffer)
+                buffer.append(.ascii.colon)
+                if options.prettyPrint { buffer.append(.ascii.sp) }
+                encode(value, into: &buffer)
             }
         } else {
-            members = Swift.Array(object)
-        }
-
-        var first = true
-        for (key, value) in members {
-            if !first {
-                buffer.append(.ascii.comma) // ,
+            // Direct iteration - no Array copy
+            for (key, value) in object {
+                if !first { buffer.append(.ascii.comma) }
+                first = false
+                if options.prettyPrint {
+                    buffer.append(.ascii.lf)
+                    appendIndent(into: &buffer)
+                }
+                encodeString(key, into: &buffer)
+                buffer.append(.ascii.colon)
+                if options.prettyPrint { buffer.append(.ascii.sp) }
+                encode(value, into: &buffer)
             }
-            first = false
-
-            if options.prettyPrint {
-                buffer.append(.ascii.lf) // newline
-                appendIndent(into: &buffer)
-            }
-
-            encodeString(key, into: &buffer)
-            buffer.append(.ascii.colon) // :
-
-            if options.prettyPrint {
-                buffer.append(.ascii.sp) // space
-            }
-
-            encode(value, into: &buffer)
         }
 
         depth -= 1
 
         if !object.isEmpty && options.prettyPrint {
-            buffer.append(.ascii.lf) // newline
+            buffer.append(.ascii.lf)
             appendIndent(into: &buffer)
         }
 
@@ -345,7 +430,7 @@ extension RFC_8259.Encoder {
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
         for _ in 0..<depth {
-            buffer.append(contentsOf: options.indent.utf8)
+            buffer.append(contentsOf: indent)
         }
     }
 }
