@@ -203,7 +203,18 @@ extension RFC_8259.Encoder {
     @usableFromInline static let escapeCarriageReturn: [UInt8] = [.ascii.reverseSlant, .ascii.r]
     @usableFromInline static let escapeTab: [UInt8] = [.ascii.reverseSlant, .ascii.t]
     @usableFromInline static let escapeUnicodePrefix: [UInt8] = [.ascii.reverseSlant, .ascii.u]
+
+    // Pre-computed indent strings for common depths (default 2-space indent)
+    @usableFromInline static let indent1: [UInt8] = Array("  ".utf8)
+    @usableFromInline static let indent2: [UInt8] = Array("    ".utf8)
+    @usableFromInline static let indent3: [UInt8] = Array("      ".utf8)
+    @usableFromInline static let indent4: [UInt8] = Array("        ".utf8)
+    @usableFromInline static let indent5: [UInt8] = Array("          ".utf8)
+    @usableFromInline static let indent6: [UInt8] = Array("            ".utf8)
+    @usableFromInline static let indent7: [UInt8] = Array("              ".utf8)
+    @usableFromInline static let indent8: [UInt8] = Array("                ".utf8)
 }
+
 
 extension RFC_8259.Encoder {
     /// Encodes a value into the buffer.
@@ -238,6 +249,9 @@ extension RFC_8259.Encoder {
     }
 
     /// Encodes a string with proper escaping.
+    ///
+    /// Uses a mark-and-sweep pattern: accumulates bytes between escapes,
+    /// bulk-copies safe ranges, processes escapes individually.
     @inlinable
     mutating func encodeString<Buffer: RangeReplaceableCollection>(
         _ string: String,
@@ -245,81 +259,84 @@ extension RFC_8259.Encoder {
     ) where Buffer.Element == UInt8 {
         buffer.append(.ascii.quotationMark) // "
 
-        for scalar in string.unicodeScalars {
-            let value = scalar.value
+        var mutableString = string
+        mutableString.withUTF8 { utf8 in
+            guard let base = utf8.baseAddress else { return }
+            var cursor = base
+            let end = base + utf8.count
+            var mark = cursor
 
-            switch value {
-            case UInt32(UInt8.ascii.quotationMark):
-                buffer.append(contentsOf: Self.escapeQuote)
-
-            case UInt32(UInt8.ascii.reverseSlant):
-                buffer.append(contentsOf: Self.escapeBackslash)
-
-            case UInt32(UInt8.ascii.solidus) where options.escapeSlashes:
-                buffer.append(contentsOf: Self.escapeSlash)
-
-            case UInt32(UInt8.ascii.bs):
-                buffer.append(contentsOf: Self.escapeBackspace)
-
-            case UInt32(UInt8.ascii.ff):
-                buffer.append(contentsOf: Self.escapeFormfeed)
-
-            case UInt32(UInt8.ascii.lf):
-                buffer.append(contentsOf: Self.escapeNewline)
-
-            case UInt32(UInt8.ascii.cr):
-                buffer.append(contentsOf: Self.escapeCarriageReturn)
-
-            case UInt32(UInt8.ascii.htab):
-                buffer.append(contentsOf: Self.escapeTab)
-
-            case 0x00...0x1F: // Other control characters → \uXXXX
-                buffer.append(contentsOf: Self.escapeUnicodePrefix)
-                encodeHex(UInt16(value), into: &buffer)
-
-            default:
-                encodeScalarUTF8(scalar, into: &buffer)
+            while cursor < end {
+                switch cursor.pointee {
+                case 0x22: // "
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeQuote)
+                    cursor += 1
+                    mark = cursor
+                case 0x5C: // \
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeBackslash)
+                    cursor += 1
+                    mark = cursor
+                case 0x2F where options.escapeSlashes: // /
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeSlash)
+                    cursor += 1
+                    mark = cursor
+                case 0x08: // backspace
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeBackspace)
+                    cursor += 1
+                    mark = cursor
+                case 0x0C: // formfeed
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeFormfeed)
+                    cursor += 1
+                    mark = cursor
+                case 0x0A: // newline
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeNewline)
+                    cursor += 1
+                    mark = cursor
+                case 0x0D: // carriage return
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeCarriageReturn)
+                    cursor += 1
+                    mark = cursor
+                case 0x09: // tab
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeTab)
+                    cursor += 1
+                    mark = cursor
+                case 0x00...0x1F: // other control chars → \uXXXX
+                    appendSafe(from: mark, to: cursor, into: &buffer)
+                    buffer.append(contentsOf: Self.escapeUnicodePrefix)
+                    encodeHex(UInt16(cursor.pointee), into: &buffer)
+                    cursor += 1
+                    mark = cursor
+                default:
+                    cursor += 1 // accumulate
+                }
             }
+
+            // Write remaining safe bytes
+            appendSafe(from: mark, to: cursor, into: &buffer)
         }
 
         buffer.append(.ascii.quotationMark) // "
     }
 
-    /// Encodes a Unicode scalar directly to UTF-8 bytes.
-    ///
-    /// This avoids the intermediate `String` allocation that would occur with
-    /// `String(scalar).utf8`.
-    @inlinable
-    func encodeScalarUTF8<Buffer: RangeReplaceableCollection>(
-        _ scalar: Unicode.Scalar,
+    /// Appends bytes from mark to cursor (bulk copy of safe range).
+    @usableFromInline
+    @inline(__always)
+    func appendSafe<Buffer: RangeReplaceableCollection>(
+        from mark: UnsafePointer<UInt8>,
+        to cursor: UnsafePointer<UInt8>,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
-        let v = scalar.value
-        switch v {
-        case 0x00...0x7F:
-            // 1-byte: 0xxxxxxx
-            buffer.append(UInt8(v))
-        case 0x80...0x7FF:
-            // 2-byte: 110xxxxx 10xxxxxx
-            buffer.append(contentsOf: [
-                UInt8(0xC0 | (v >> 6)),
-                UInt8(0x80 | (v & 0x3F))
-            ])
-        case 0x800...0xFFFF:
-            // 3-byte: 1110xxxx 10xxxxxx 10xxxxxx
-            buffer.append(contentsOf: [
-                UInt8(0xE0 | (v >> 12)),
-                UInt8(0x80 | ((v >> 6) & 0x3F)),
-                UInt8(0x80 | (v & 0x3F))
-            ])
-        default:
-            // 4-byte: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (0x10000...0x10FFFF)
-            buffer.append(contentsOf: [
-                UInt8(0xF0 | (v >> 18)),
-                UInt8(0x80 | ((v >> 12) & 0x3F)),
-                UInt8(0x80 | ((v >> 6) & 0x3F)),
-                UInt8(0x80 | (v & 0x3F))
-            ])
+        let count = cursor - mark
+        if count > 0 {
+            buffer.append(contentsOf: UnsafeBufferPointer(start: mark, count: count))
         }
     }
 
@@ -425,10 +442,31 @@ extension RFC_8259.Encoder {
     }
 
     /// Appends indentation for the current depth.
+    ///
+    /// Uses pre-computed indent strings for the common case (2-space indent, depth <= 8).
     @inlinable
     func appendIndent<Buffer: RangeReplaceableCollection>(
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
+        // Fast path for default 2-space indent
+        if indent.count == 2 && indent[0] == .ascii.sp && indent[1] == .ascii.sp {
+            switch depth {
+            case 0: return
+            case 1: buffer.append(contentsOf: Self.indent1)
+            case 2: buffer.append(contentsOf: Self.indent2)
+            case 3: buffer.append(contentsOf: Self.indent3)
+            case 4: buffer.append(contentsOf: Self.indent4)
+            case 5: buffer.append(contentsOf: Self.indent5)
+            case 6: buffer.append(contentsOf: Self.indent6)
+            case 7: buffer.append(contentsOf: Self.indent7)
+            case 8: buffer.append(contentsOf: Self.indent8)
+            default:
+                // Deep nesting: fall through to loop
+                break
+            }
+            if depth <= 8 { return }
+        }
+        // Fallback for custom indent or deep nesting
         for _ in 0..<depth {
             buffer.append(contentsOf: indent)
         }
