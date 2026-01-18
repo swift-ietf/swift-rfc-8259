@@ -9,17 +9,17 @@ let package = Package(
         .iOS(.v26),
         .tvOS(.v26),
         .watchOS(.v26),
-        .visionOS(.v26),
+        .visionOS(.v26)
     ],
     products: [
-        .library(name: "RFC 8259", targets: ["RFC 8259"]),
+        .library(name: "RFC 8259", targets: ["RFC 8259"])
     ],
     dependencies: [
         .package(path: "../../swift-primitives/swift-standard-library-extensions"),
         .package(path: "../../swift-primitives/swift-parsing-primitives"),
         .package(path: "../../swift-primitives/swift-binary-primitives"),
         .package(path: "../../swift-primitives/swift-container-primitives"),
-        .package(path: "../../swift-foundations/swift-ascii"),
+        .package(path: "../../swift-foundations/swift-ascii")
     ],
     targets: [
         .target(
@@ -29,13 +29,9 @@ let package = Package(
                 .product(name: "Parsing Primitives", package: "swift-parsing-primitives"),
                 .product(name: "Binary Primitives", package: "swift-binary-primitives"),
                 .product(name: "Container Primitives", package: "swift-container-primitives"),
-                .product(name: "ASCII", package: "swift-ascii"),
+                .product(name: "ASCII", package: "swift-ascii")
             ]
-        ),
-        .testTarget(
-            name: "RFC 8259 Tests",
-            dependencies: ["RFC 8259"]
-        ),
+        )
     ],
     swiftLanguageModes: [.v6]
 )
