@@ -15,11 +15,11 @@ let package = Package(
         .library(name: "RFC 8259", targets: ["RFC 8259"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-primitives/swift-standard-library-extensions.git", from: "0.0.1"),
-        .package(url: "https://github.com/swift-primitives/swift-parsing-primitives.git", from: "0.0.1"),
-        .package(url: "https://github.com/swift-primitives/swift-binary-primitives.git", from: "0.0.1"),
-        .package(url: "https://github.com/swift-primitives/swift-container-primitives.git", from: "0.0.1"),
-        .package(url: "https://github.com/swift-foundations/swift-ascii.git", from: "0.0.1"),
+        .package(path: "../../swift-primitives/swift-standard-library-extensions"),
+        .package(path: "../../swift-primitives/swift-parsing-primitives"),
+        .package(path: "../../swift-primitives/swift-binary-primitives"),
+        .package(path: "../../swift-primitives/swift-container-primitives"),
+        .package(path: "../../swift-foundations/swift-ascii"),
     ],
     targets: [
         .target(

@@ -58,12 +58,12 @@ extension RFC_8259 {
 
         /// All keys in insertion order.
         public var keys: [String] {
-            _storage.map(\.key)
+            _storage.map { $0.key }
         }
 
         /// All values in insertion order.
         public var values: [Value] {
-            _storage.map(\.value)
+            _storage.map { $0.value }
         }
     }
 }

@@ -89,6 +89,6 @@ extension RFC_8259.Array: ExpressibleByArrayLiteral {
 
 extension RFC_8259.Array: CustomStringConvertible {
     public var description: String {
-        "[\(_storage.map(\.description).joined(separator: ", "))]"
+        "[\(_storage.map { $0.description }.joined(separator: ", "))]"
     }
 }
