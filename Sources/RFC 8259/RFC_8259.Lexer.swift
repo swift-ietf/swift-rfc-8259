@@ -3,8 +3,8 @@
 ///
 /// Zero-copy JSON lexer (~Copyable)
 
-import Container_Primitives
-import Parsing_Primitives
+import Array_Primitives
+import Parser_Primitives
 
 extension RFC_8259 {
     /// Zero-copy JSON lexer.
@@ -15,13 +15,13 @@ extension RFC_8259 {
     /// ## Usage
     ///
     /// ```swift
-    /// var input = Parsing.CollectionInput(bytes)
+    /// var input = Parser.CollectionInput(bytes)
     /// var lexer = RFC_8259.Lexer(consume input)
     /// while let token = try lexer.next() {
     ///     print(token)
     /// }
     /// ```
-    public struct Lexer<Input: Parsing.Input>: ~Copyable
+    public struct Lexer<Input: Parser.Input>: ~Copyable
     where Input.Element == UInt8 {
         /// The input being lexed.
         @usableFromInline
@@ -326,7 +326,7 @@ extension RFC_8259.Lexer {
         guard bytes.count == 4 else { return nil }
         var result: UInt32 = 0
         for byte in bytes {
-            guard let digit = INCITS_4_1986.NumericParsing.hexDigit(byte) else { return nil }
+            guard let digit = INCITS_4_1986.NumericParser.hexDigit(byte) else { return nil }
             result = result * 16 + UInt32(digit)
         }
         return result
@@ -338,12 +338,12 @@ extension RFC_8259.Lexer {
 extension RFC_8259.Lexer {
     /// Lexes a JSON number.
     ///
-    /// Uses `Container.Array.Unbounded<24>` for inline storage of number bytes,
+    /// Uses `Array.Unbounded<24>` for inline storage of number bytes,
     /// avoiding heap allocation for typical JSON numbers (< 24 bytes).
     @inlinable
     internal mutating func lexNumber() throws(RFC_8259.Error) -> RFC_8259.Token {
         let startPos = position
-        var bytes = Container.Array<UInt8>.Unbounded<24>()
+        var bytes = Array_Primitives.Array<UInt8>.Unbounded<24>()
 
         // Optional minus
         if input.first == .ascii.hyphen {

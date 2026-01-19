@@ -4,7 +4,7 @@
 /// Tests for the JSON lexer
 
 import Testing
-import Parsing_Primitives
+import Parser_Primitives
 @testable import RFC_8259
 
 @Suite("Lexer Tests")

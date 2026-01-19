@@ -3,7 +3,7 @@
 ///
 /// JSON decoding convenience API
 
-import Parsing_Primitives
+import Parser_Primitives
 
 extension RFC_8259 {
     /// Decodes UTF-8 bytes to a JSON value.
@@ -37,7 +37,7 @@ extension RFC_8259 {
             maxDepth: Int = 512
         ) throws(RFC_8259.Error) -> Value
         where C.Element == UInt8, C.Index: Sendable {
-            let input = Parsing.CollectionInput(bytes)
+            let input = Parser.CollectionInput(bytes)
             var parser = Parser(consume input, maxDepth: maxDepth)
             return try parser.parse()
         }

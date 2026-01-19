@@ -3,7 +3,7 @@
 ///
 /// Lexer token types for JSON parsing
 
-import Parsing_Primitives
+import Parser_Primitives
 
 extension RFC_8259 {
     /// Tokens produced by the JSON lexer.

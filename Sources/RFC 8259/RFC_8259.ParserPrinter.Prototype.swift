@@ -2,11 +2,11 @@
 /// swift-rfc-8259
 ///
 /// PROTOTYPE: Demonstrates how RFC_8259 could be restructured using
-/// swift-parsing-primitives' `Parser`, `Printer`, and `ParserPrinter` abstractions.
+/// swift-parser-primitives' `Parser`, `Printer`, and `ParserPrinter` abstractions.
 ///
 /// This file is NOT production code - it's a design exploration.
 
-import Parsing_Primitives
+import Parser_Primitives
 
 // MARK: - Design Overview
 
@@ -60,7 +60,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON literals (null, true, false).
-    public struct LiteralParserPrinter: Parsing.ParserPrinter {
+    public struct LiteralParserPrinter: Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Value
         public typealias Failure = PPError
@@ -130,7 +130,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON strings.
-    public struct StringParserPrinter: Parsing.ParserPrinter {
+    public struct StringParserPrinter: Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = String
         public typealias Failure = PPError
@@ -305,7 +305,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON numbers.
-    public struct NumberParserPrinter: Parsing.ParserPrinter {
+    public struct NumberParserPrinter: Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Number
         public typealias Failure = PPError
@@ -410,7 +410,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// Parser for optional JSON whitespace.
-    public struct WhitespaceParser: Parsing.Parser {
+    public struct WhitespaceParser: Parser.Parser {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Void
         public typealias Failure = Never
@@ -434,7 +434,7 @@ extension RFC_8259 {
     ///
     /// This is the top-level parser/printer that handles all JSON value types.
     /// It uses mutual recursion with ArrayParserPrinter and ObjectParserPrinter.
-    public struct ValueParserPrinter: Parsing.ParserPrinter {
+    public struct ValueParserPrinter: Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Value
         public typealias Failure = PPError
@@ -690,7 +690,7 @@ extension RFC_8259 {
  2. Round-trip correctness by construction
  3. Composable - can combine with other parsers
  4. Consistent error types across parse/print
- 5. Uses existing swift-parsing-primitives infrastructure
+ 5. Uses existing swift-parser-primitives infrastructure
 
  DISADVANTAGES:
  1. Printer protocol prepends (insert at startIndex) which is O(n)

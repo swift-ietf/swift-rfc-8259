@@ -3,7 +3,7 @@
 ///
 /// JSON parser (~Copyable)
 
-import Parsing_Primitives
+import Parser_Primitives
 
 extension RFC_8259 {
     /// JSON value parser.
@@ -20,11 +20,11 @@ extension RFC_8259 {
     /// ## Usage
     ///
     /// ```swift
-    /// var input = Parsing.CollectionInput(bytes)
+    /// var input = Parser.CollectionInput(bytes)
     /// var parser = RFC_8259.Parser(consume input)
     /// let value = try parser.parse()
     /// ```
-    public struct Parser<Input: Parsing.Input>: ~Copyable
+    public struct Parser<Input: Parser.Input>: ~Copyable
     where Input.Element == UInt8 {
         /// The underlying lexer.
         @usableFromInline
