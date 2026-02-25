@@ -24,7 +24,7 @@ extension RFC_8259 {
     /// var parser = RFC_8259.Parser(consume input)
     /// let value = try parser.parse()
     /// ```
-    public struct Parser<Input: Parser.Input>: ~Copyable
+    public struct Parser<Input: Parser_Primitives.Parser.Input & ~Copyable>: ~Copyable
     where Input.Element == UInt8 {
         /// The underlying lexer.
         @usableFromInline
@@ -64,7 +64,7 @@ extension RFC_8259 {
 
 // MARK: - Parser Public API
 
-extension RFC_8259.Parser {
+extension RFC_8259.Parser where Input: ~Copyable {
     /// Parses the input and returns a JSON value.
     ///
     /// - Throws: `RFC_8259.Error` if parsing fails.
@@ -84,7 +84,7 @@ extension RFC_8259.Parser {
 
 // MARK: - Parser Token Handling
 
-extension RFC_8259.Parser {
+extension RFC_8259.Parser where Input: ~Copyable {
     /// Gets the next token, using lookahead if available.
     @inlinable
     internal mutating func nextToken() throws(RFC_8259.Error) -> RFC_8259.Token? {
@@ -105,7 +105,7 @@ extension RFC_8259.Parser {
 
 // MARK: - Parser Value Parsing
 
-extension RFC_8259.Parser {
+extension RFC_8259.Parser where Input: ~Copyable {
     /// Parses a JSON value.
     @inlinable
     internal mutating func parseValue() throws(RFC_8259.Error) -> RFC_8259.Value {
@@ -147,7 +147,7 @@ extension RFC_8259.Parser {
 
 // MARK: - Parser Array Parsing
 
-extension RFC_8259.Parser {
+extension RFC_8259.Parser where Input: ~Copyable {
     /// Parses a JSON array (after `[` has been consumed).
     @inlinable
     internal mutating func parseArray() throws(RFC_8259.Error) -> RFC_8259.Value {
@@ -199,7 +199,7 @@ extension RFC_8259.Parser {
 
 // MARK: - Parser Object Parsing
 
-extension RFC_8259.Parser {
+extension RFC_8259.Parser where Input: ~Copyable {
     /// Parses a JSON object (after `{` has been consumed).
     @inlinable
     internal mutating func parseObject() throws(RFC_8259.Error) -> RFC_8259.Value {

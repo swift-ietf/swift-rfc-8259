@@ -48,7 +48,7 @@ extension RFC_8259 {
         ///   - buffer: The buffer to append to.
         ///   - options: Encoding options.
         @inlinable
-        public func callAsFunction<Buffer: RangeReplaceableCollection>(
+        public func callAsFunction<Buffer: Swift.RangeReplaceableCollection>(
             into buffer: inout Buffer,
             options: Options = Options()
         ) where Buffer.Element == UInt8 {
@@ -205,21 +205,21 @@ extension RFC_8259.Encoder {
     @usableFromInline static let escapeUnicodePrefix: [UInt8] = [.ascii.reverseSlant, .ascii.u]
 
     // Pre-computed indent strings for common depths (default 2-space indent)
-    @usableFromInline static let indent1: [UInt8] = Array("  ".utf8)
-    @usableFromInline static let indent2: [UInt8] = Array("    ".utf8)
-    @usableFromInline static let indent3: [UInt8] = Array("      ".utf8)
-    @usableFromInline static let indent4: [UInt8] = Array("        ".utf8)
-    @usableFromInline static let indent5: [UInt8] = Array("          ".utf8)
-    @usableFromInline static let indent6: [UInt8] = Array("            ".utf8)
-    @usableFromInline static let indent7: [UInt8] = Array("              ".utf8)
-    @usableFromInline static let indent8: [UInt8] = Array("                ".utf8)
+    @usableFromInline static let indent1: [UInt8] = Swift.Array("  ".utf8)
+    @usableFromInline static let indent2: [UInt8] = Swift.Array("    ".utf8)
+    @usableFromInline static let indent3: [UInt8] = Swift.Array("      ".utf8)
+    @usableFromInline static let indent4: [UInt8] = Swift.Array("        ".utf8)
+    @usableFromInline static let indent5: [UInt8] = Swift.Array("          ".utf8)
+    @usableFromInline static let indent6: [UInt8] = Swift.Array("            ".utf8)
+    @usableFromInline static let indent7: [UInt8] = Swift.Array("              ".utf8)
+    @usableFromInline static let indent8: [UInt8] = Swift.Array("                ".utf8)
 }
 
 
 extension RFC_8259.Encoder {
     /// Encodes a value into the buffer.
     @inlinable
-    mutating func encode<Buffer: RangeReplaceableCollection>(
+    mutating func encode<Buffer: Swift.RangeReplaceableCollection>(
         _ value: RFC_8259.Value,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
@@ -253,7 +253,7 @@ extension RFC_8259.Encoder {
     /// Uses a mark-and-sweep pattern: accumulates bytes between escapes,
     /// bulk-copies safe ranges, processes escapes individually.
     @inlinable
-    mutating func encodeString<Buffer: RangeReplaceableCollection>(
+    mutating func encodeString<Buffer: Swift.RangeReplaceableCollection>(
         _ string: String,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
@@ -329,7 +329,7 @@ extension RFC_8259.Encoder {
     /// Appends bytes from mark to cursor (bulk copy of safe range).
     @usableFromInline
     @inline(__always)
-    func appendSafe<Buffer: RangeReplaceableCollection>(
+    func appendSafe<Buffer: Swift.RangeReplaceableCollection>(
         from mark: UnsafePointer<UInt8>,
         to cursor: UnsafePointer<UInt8>,
         into buffer: inout Buffer
@@ -342,7 +342,7 @@ extension RFC_8259.Encoder {
 
     /// Encodes a 16-bit value as 4 hex digits.
     @inlinable
-    func encodeHex<Buffer: RangeReplaceableCollection>(
+    func encodeHex<Buffer: Swift.RangeReplaceableCollection>(
         _ value: UInt16,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
@@ -354,7 +354,7 @@ extension RFC_8259.Encoder {
 
     /// Encodes an array.
     @inlinable
-    mutating func encodeArray<Buffer: RangeReplaceableCollection>(
+    mutating func encodeArray<Buffer: Swift.RangeReplaceableCollection>(
         _ array: RFC_8259.Array,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
@@ -390,7 +390,7 @@ extension RFC_8259.Encoder {
 
     /// Encodes an object.
     @inlinable
-    mutating func encodeObject<Buffer: RangeReplaceableCollection>(
+    mutating func encodeObject<Buffer: Swift.RangeReplaceableCollection>(
         _ object: RFC_8259.Object,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
@@ -445,7 +445,7 @@ extension RFC_8259.Encoder {
     ///
     /// Uses pre-computed indent strings for the common case (2-space indent, depth <= 8).
     @inlinable
-    func appendIndent<Buffer: RangeReplaceableCollection>(
+    func appendIndent<Buffer: Swift.RangeReplaceableCollection>(
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
         // Fast path for default 2-space indent
@@ -501,7 +501,7 @@ extension RFC_8259.Value: Binary.Serializable {
     ///   - value: The JSON value to serialize.
     ///   - buffer: The buffer to append bytes to.
     @inlinable
-    public static func serialize<Buffer: RangeReplaceableCollection>(
+    public static func serialize<Buffer: Swift.RangeReplaceableCollection>(
         _ value: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {

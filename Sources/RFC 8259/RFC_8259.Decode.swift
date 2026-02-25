@@ -32,12 +32,13 @@ extension RFC_8259 {
         /// - Throws: `RFC_8259.Error` if parsing fails.
         /// - Returns: The parsed JSON value.
         @inlinable
-        public func callAsFunction<C: Collection & Sendable>(
+        public func callAsFunction<C: Swift.Collection & Sendable>(
             _ bytes: C,
             maxDepth: Int = 512
         ) throws(RFC_8259.Error) -> Value
         where C.Element == UInt8, C.Index: Sendable {
-            let input = Parser.CollectionInput(bytes)
+            let array = Swift.Array(bytes)
+            let input = Input.Buffer(array)
             var parser = Parser(consume input, maxDepth: maxDepth)
             return try parser.parse()
         }
@@ -117,7 +118,7 @@ extension RFC_8259 {
     /// - Throws: `RFC_8259.Error` if parsing fails.
     /// - Returns: The parsed JSON value.
     @inlinable
-    public static func parse<C: Collection & Sendable>(
+    public static func parse<C: Swift.Collection & Sendable>(
         _ json: C,
         maxDepth: Int = 512
     ) throws(Error) -> Value

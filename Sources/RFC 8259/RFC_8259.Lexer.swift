@@ -3,7 +3,7 @@
 ///
 /// Zero-copy JSON lexer (~Copyable)
 
-import Array_Primitives
+@_spi(Unsafe) import Array_Primitives
 import Parser_Primitives
 
 extension RFC_8259 {
@@ -15,13 +15,13 @@ extension RFC_8259 {
     /// ## Usage
     ///
     /// ```swift
-    /// var input = Parser.CollectionInput(bytes)
+    /// var input = Parser_Primitives.Parser.CollectionInput(bytes)
     /// var lexer = RFC_8259.Lexer(consume input)
     /// while let token = try lexer.next() {
     ///     print(token)
     /// }
     /// ```
-    public struct Lexer<Input: Parser.Input>: ~Copyable
+    public struct Lexer<Input: Parser_Primitives.Parser.Input & ~Copyable>: ~Copyable
     where Input.Element == UInt8 {
         /// The input being lexed.
         @usableFromInline
@@ -47,9 +47,46 @@ extension RFC_8259 {
     }
 }
 
+// MARK: - Lexer Peek & Advance
+
+extension RFC_8259.Lexer where Input: ~Copyable {
+    /// Peeks at the next byte without consuming it.
+    @inlinable
+    internal var peek: UInt8? {
+        mutating get {
+            guard !input.isEmpty else { return nil }
+            let cp = input.checkpoint
+            let byte = input.next()!
+            input.setPosition(to: cp)
+            return byte
+        }
+    }
+
+    /// Advances by one byte, updating position. Returns the consumed byte.
+    @inlinable @discardableResult
+    internal mutating func advance() -> UInt8 {
+        let byte = input.next()!
+        let isNewline = byte == .ascii.lf
+        position = RFC_8259.Position(
+            offset: position.offset + 1,
+            line: isNewline ? position.line + 1 : position.line,
+            column: isNewline ? 1 : position.column + 1
+        )
+        return byte
+    }
+
+    /// Advances by n bytes, updating position.
+    @inlinable
+    internal mutating func advance(_ n: Int) {
+        for _ in 0..<n {
+            advance()
+        }
+    }
+}
+
 // MARK: - Lexer Core Methods
 
-extension RFC_8259.Lexer {
+extension RFC_8259.Lexer where Input: ~Copyable {
     /// Returns the next token, or nil if at end of input.
     ///
     /// - Throws: `RFC_8259.Error` if the input is malformed.
@@ -57,7 +94,7 @@ extension RFC_8259.Lexer {
     public mutating func next() throws(RFC_8259.Error) -> RFC_8259.Token? {
         skipWhitespace()
 
-        guard let byte = input.first else {
+        guard let byte = peek else {
             return nil
         }
 
@@ -110,46 +147,15 @@ extension RFC_8259.Lexer {
             )
         }
     }
-
-    /// Peeks at the next token without consuming it.
-    ///
-    /// Note: This creates a copy of the lexer state.
-    /// Use sparingly as it breaks ~Copyable benefits.
-    @inlinable
-    public func peek() throws(RFC_8259.Error) -> RFC_8259.Token? {
-        // We need to work around ~Copyable for peek
-        // For now, this is not supported - use next() and track state externally
-        fatalError("peek() not supported on ~Copyable Lexer")
-    }
 }
 
 // MARK: - Lexer Whitespace
 
-extension RFC_8259.Lexer {
+extension RFC_8259.Lexer where Input: ~Copyable {
     /// Skips whitespace bytes.
     @inlinable
     internal mutating func skipWhitespace() {
-        while let byte = input.first, RFC_8259.isWhitespace(byte) {
-            advance()
-        }
-    }
-
-    /// Advances by one byte, updating position.
-    @inlinable
-    internal mutating func advance() {
-        let byte = input.removeFirst()
-        let isNewline = byte == .ascii.lf
-        position = RFC_8259.Position(
-            offset: position.offset + 1,
-            line: isNewline ? position.line + 1 : position.line,
-            column: isNewline ? 1 : position.column + 1
-        )
-    }
-
-    /// Advances by n bytes, updating position.
-    @inlinable
-    internal mutating func advance(_ n: Int) {
-        for _ in 0..<n {
+        while let byte = peek, RFC_8259.isWhitespace(byte) {
             advance()
         }
     }
@@ -157,7 +163,7 @@ extension RFC_8259.Lexer {
 
 // MARK: - Lexer Literals
 
-extension RFC_8259.Lexer {
+extension RFC_8259.Lexer where Input: ~Copyable {
     /// Lexes `null`.
     @inlinable
     internal mutating func lexNull() throws(RFC_8259.Error) -> RFC_8259.Token {
@@ -184,7 +190,7 @@ extension RFC_8259.Lexer {
     internal mutating func expectLiteral(_ expected: [UInt8]) throws(RFC_8259.Error) {
         let startPos = position
         for expectedByte in expected {
-            guard let byte = input.first else {
+            guard let byte = peek else {
                 throw .unexpectedEndOfInput(at: position, expected: .value)
             }
             guard byte == expectedByte else {
@@ -197,7 +203,7 @@ extension RFC_8259.Lexer {
 
 // MARK: - Lexer String
 
-extension RFC_8259.Lexer {
+extension RFC_8259.Lexer where Input: ~Copyable {
     /// Lexes a JSON string.
     @inlinable
     internal mutating func lexString() throws(RFC_8259.Error) -> RFC_8259.Token {
@@ -208,7 +214,7 @@ extension RFC_8259.Lexer {
 
         var result: [UInt8] = []
 
-        while let byte = input.first {
+        while let byte = peek {
             switch byte {
             case .ascii.quotationMark:      // " - closing quote
                 advance()
@@ -235,7 +241,7 @@ extension RFC_8259.Lexer {
     /// Lexes an escape sequence after the backslash.
     @inlinable
     internal mutating func lexEscapeSequence() throws(RFC_8259.Error) -> [UInt8] {
-        guard let byte = input.first else {
+        guard let byte = peek else {
             throw .unexpectedEndOfInput(at: position, expected: .value)
         }
 
@@ -263,7 +269,7 @@ extension RFC_8259.Lexer {
         hex.reserveCapacity(4)
 
         for _ in 0..<4 {
-            guard let byte = input.first else {
+            guard let byte = peek else {
                 throw .invalidString(at: position, reason: .invalidUnicodeEscape)
             }
             guard byte.ascii.isHexDigit else {
@@ -281,11 +287,11 @@ extension RFC_8259.Lexer {
         // since surrogates (0xD800-0xDFFF) are not valid scalar values
         if codePoint >= 0xD800 && codePoint <= 0xDBFF {
             // High surrogate - expect low surrogate
-            guard input.first == .ascii.reverseSlant else {
+            guard peek == .ascii.reverseSlant else {
                 throw .invalidString(at: position, reason: .invalidUnicodeEscape)
             }
             advance()
-            guard input.first == .ascii.u else {
+            guard peek == .ascii.u else {
                 throw .invalidString(at: position, reason: .invalidUnicodeEscape)
             }
             advance()
@@ -293,7 +299,7 @@ extension RFC_8259.Lexer {
             var lowHex: [UInt8] = []
             lowHex.reserveCapacity(4)
             for _ in 0..<4 {
-                guard let byte = input.first, byte.ascii.isHexDigit else {
+                guard let byte = peek, byte.ascii.isHexDigit else {
                     throw .invalidString(at: position, reason: .invalidUnicodeEscape)
                 }
                 lowHex.append(byte)
@@ -310,14 +316,14 @@ extension RFC_8259.Lexer {
             guard let combinedScalar = Unicode.Scalar(combined) else {
                 throw .invalidString(at: position, reason: .invalidUnicodeEscape)
             }
-            return Array(String(combinedScalar).utf8)
+            return Swift.Array(String(combinedScalar).utf8)
         }
 
         // Not a surrogate - create scalar directly
         guard let scalar = Unicode.Scalar(codePoint) else {
             throw .invalidString(at: position, reason: .invalidUnicodeEscape)
         }
-        return Array(String(scalar).utf8)
+        return Swift.Array(String(scalar).utf8)
     }
 
     /// Parses 4 hex bytes to a UInt32.
@@ -326,7 +332,7 @@ extension RFC_8259.Lexer {
         guard bytes.count == 4 else { return nil }
         var result: UInt32 = 0
         for byte in bytes {
-            guard let digit = INCITS_4_1986.NumericParser.hexDigit(byte) else { return nil }
+            guard let digit = byte.ascii.hexValue else { return nil }
             result = result * 16 + UInt32(digit)
         }
         return result
@@ -335,87 +341,87 @@ extension RFC_8259.Lexer {
 
 // MARK: - Lexer Number
 
-extension RFC_8259.Lexer {
+extension RFC_8259.Lexer where Input: ~Copyable {
     /// Lexes a JSON number.
     ///
-    /// Uses `Array.Unbounded<24>` for inline storage of number bytes,
+    /// Uses `Array.Small<24>` for inline storage of number bytes,
     /// avoiding heap allocation for typical JSON numbers (< 24 bytes).
     @inlinable
     internal mutating func lexNumber() throws(RFC_8259.Error) -> RFC_8259.Token {
         let startPos = position
-        var bytes = Array_Primitives.Array<UInt8>.Unbounded<24>()
+        var bytes = Array_Primitives.Array<UInt8>.Small<24>()
 
         // Optional minus
-        if input.first == .ascii.hyphen {
-            bytes.append(input.removeFirst())
-            position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+        if peek == .ascii.hyphen {
+            bytes.append(advance())
         }
 
         // Integer part
-        guard let firstDigit = input.first, firstDigit.ascii.isDigit else {
+        guard let firstDigit = peek, firstDigit.ascii.isDigit else {
             throw .invalidNumber(at: startPos, reason: .missingDigits(context: "integer part"))
         }
 
         if firstDigit == .ascii.`0` { // Leading zero
-            bytes.append(input.removeFirst())
-            position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+            bytes.append(advance())
 
             // Check for leading zeros (invalid in JSON)
-            if let next = input.first, next.ascii.isDigit {
+            if let next = peek, next.ascii.isDigit {
                 throw .invalidNumber(at: startPos, reason: .leadingZeros)
             }
         } else {
             // digit1-9 followed by more digits
-            while let byte = input.first, byte.ascii.isDigit {
-                bytes.append(input.removeFirst())
-                position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+            while let byte = peek, byte.ascii.isDigit {
+                bytes.append(advance())
             }
         }
 
         var isFloat = false
 
         // Optional fraction
-        if input.first == .ascii.period {
+        if peek == .ascii.period {
             isFloat = true
-            bytes.append(input.removeFirst())
-            position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+            bytes.append(advance())
 
-            guard let firstFracDigit = input.first, firstFracDigit.ascii.isDigit else {
+            guard let firstFracDigit = peek, firstFracDigit.ascii.isDigit else {
                 throw .invalidNumber(at: startPos, reason: .missingDigits(context: "fraction"))
             }
 
-            while let byte = input.first, byte.ascii.isDigit {
-                bytes.append(input.removeFirst())
-                position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+            while let byte = peek, byte.ascii.isDigit {
+                bytes.append(advance())
             }
         }
 
         // Optional exponent
-        if let e = input.first, e == .ascii.e || e == .ascii.E {
+        if let e = peek, e == .ascii.e || e == .ascii.E {
             isFloat = true
-            bytes.append(input.removeFirst())
-            position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+            bytes.append(advance())
 
             // Optional sign
-            if let sign = input.first, sign == .ascii.plusSign || sign == .ascii.hyphen {
-                bytes.append(input.removeFirst())
-                position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+            if let sign = peek, sign == .ascii.plusSign || sign == .ascii.hyphen {
+                bytes.append(advance())
             }
 
-            guard let firstExpDigit = input.first, firstExpDigit.ascii.isDigit else {
+            guard let firstExpDigit = peek, firstExpDigit.ascii.isDigit else {
                 throw .invalidNumber(at: startPos, reason: .missingDigits(context: "exponent"))
             }
 
-            while let byte = input.first, byte.ascii.isDigit {
-                bytes.append(input.removeFirst())
-                position = RFC_8259.Position(offset: position.offset + 1, line: position.line, column: position.column + 1)
+            while let byte = peek, byte.ascii.isDigit {
+                bytes.append(advance())
             }
         }
 
-        // Parse the number - extract bytes for Original and String conversion
-        let (original, numStr) = bytes.withUnsafeBufferPointer { buffer in
-            (RFC_8259.Number.Original(buffer), String(decoding: buffer, as: UTF8.self))
-        }
+        // Extract bytes for Original and String conversion
+        let byteArray: [UInt8] = {
+            let span = bytes.span
+            var arr: [UInt8] = []
+            arr.reserveCapacity(span.count)
+            for i in 0..<span.count {
+                arr.append(span[i])
+            }
+            return arr
+        }()
+        let original = RFC_8259.Number.Original(byteArray)
+        let numStr = String(decoding: byteArray, as: UTF8.self)
 
         if isFloat {
             guard let value = Double(numStr), value.isFinite else {

@@ -97,10 +97,10 @@ extension RFC_8259.Object {
 
 // MARK: - Object Sequence
 
-extension RFC_8259.Object: Sequence {
+extension RFC_8259.Object: Swift.Sequence {
     public typealias Element = (key: String, value: RFC_8259.Value)
 
-    public struct Iterator: IteratorProtocol {
+    public struct Iterator: Swift.IteratorProtocol {
         @usableFromInline
         internal var base: IndexingIterator<[(key: String, value: RFC_8259.Value)]>
 
@@ -123,7 +123,7 @@ extension RFC_8259.Object: Sequence {
 
 // MARK: - Object Collection
 
-extension RFC_8259.Object: Collection {
+extension RFC_8259.Object: Swift.Collection {
     public typealias Index = Int
 
     public var startIndex: Int { _storage.startIndex }

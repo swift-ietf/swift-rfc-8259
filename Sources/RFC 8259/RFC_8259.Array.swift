@@ -45,7 +45,7 @@ extension RFC_8259 {
 
 // MARK: - Array RandomAccessCollection + MutableCollection
 
-extension RFC_8259.Array: RandomAccessCollection, MutableCollection {
+extension RFC_8259.Array: Swift.RandomAccessCollection, Swift.MutableCollection {
     public typealias Index = Int
     public typealias Element = RFC_8259.Value
 
@@ -68,11 +68,11 @@ extension RFC_8259.Array: RandomAccessCollection, MutableCollection {
 
 // MARK: - Array RangeReplaceableCollection
 
-extension RFC_8259.Array: RangeReplaceableCollection {
+extension RFC_8259.Array: Swift.RangeReplaceableCollection {
     public mutating func replaceSubrange<C>(
         _ subrange: Range<Int>,
         with newElements: C
-    ) where C: Collection, C.Element == RFC_8259.Value {
+    ) where C: Swift.Collection, C.Element == RFC_8259.Value {
         _storage.replaceSubrange(subrange, with: newElements)
     }
 }

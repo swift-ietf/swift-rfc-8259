@@ -84,7 +84,7 @@ extension RFC_8259.Number {
         }
 
         /// Creates an Original from a byte collection.
-        public init<Bytes: Collection>(_ bytes: Bytes) where Bytes.Element == UInt8 {
+        public init<Bytes: Swift.Collection>(_ bytes: Bytes) where Bytes.Element == UInt8 {
             let array = Swift.Array(bytes)
             if array.count <= 23 {
                 self.storage = .inline(InlineBytes(array))
@@ -284,7 +284,7 @@ extension RFC_8259.Number {
     /// Creates a Number from an integer.
     public init(_ value: Int) {
         let str = String(value)
-        self.init(Int64(value), original: Original(Array(str.utf8)))
+        self.init(Int64(value), original: Original(Swift.Array(str.utf8)))
     }
 
     /// Creates a Number from a Double.
@@ -293,6 +293,6 @@ extension RFC_8259.Number {
     /// For lossless encoding, parse from the original JSON bytes.
     public init(_ value: Double) {
         let str = String(value)
-        self.init(value, original: Original(Array(str.utf8)))
+        self.init(value, original: Original(Swift.Array(str.utf8)))
     }
 }

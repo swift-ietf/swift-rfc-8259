@@ -60,7 +60,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON literals (null, true, false).
-    public struct LiteralParserPrinter: Parser.ParserPrinter {
+    public struct LiteralParserPrinter: Parser_Primitives.Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Value
         public typealias Failure = PPError
@@ -130,7 +130,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON strings.
-    public struct StringParserPrinter: Parser.ParserPrinter {
+    public struct StringParserPrinter: Parser_Primitives.Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = String
         public typealias Failure = PPError
@@ -305,7 +305,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON numbers.
-    public struct NumberParserPrinter: Parser.ParserPrinter {
+    public struct NumberParserPrinter: Parser_Primitives.Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Number
         public typealias Failure = PPError
@@ -410,7 +410,7 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// Parser for optional JSON whitespace.
-    public struct WhitespaceParser: Parser.Parser {
+    public struct WhitespaceParser: Parser_Primitives.Parser.`Protocol` {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Void
         public typealias Failure = Never
@@ -434,7 +434,7 @@ extension RFC_8259 {
     ///
     /// This is the top-level parser/printer that handles all JSON value types.
     /// It uses mutual recursion with ArrayParserPrinter and ObjectParserPrinter.
-    public struct ValueParserPrinter: Parser.ParserPrinter {
+    public struct ValueParserPrinter: Parser_Primitives.Parser.ParserPrinter {
         public typealias Input = ArraySlice<UInt8>
         public typealias Output = Value
         public typealias Failure = PPError
