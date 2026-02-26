@@ -31,7 +31,13 @@ let package = Package(
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "ASCII Primitives", package: "swift-ascii-primitives")
             ]
-        )
+        ),
+        .testTarget(
+            name: "RFC 8259 Tests",
+            dependencies: [
+                "RFC 8259",
+            ]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )
