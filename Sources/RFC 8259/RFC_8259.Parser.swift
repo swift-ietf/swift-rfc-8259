@@ -24,7 +24,7 @@ extension RFC_8259 {
     /// var parser = RFC_8259.Parser(consume input)
     /// let value = try parser.parse()
     /// ```
-    public struct Parser<Input: Parser_Primitives.Parser.Input & ~Copyable>: ~Copyable
+    public struct Parser<Input: Parser_Primitives.Parser.Input.`Protocol` & ~Copyable>: ~Copyable
     where Input.Element == UInt8 {
         /// The underlying lexer.
         @usableFromInline

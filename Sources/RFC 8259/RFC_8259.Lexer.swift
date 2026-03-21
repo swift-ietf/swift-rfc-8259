@@ -21,7 +21,7 @@ extension RFC_8259 {
     ///     print(token)
     /// }
     /// ```
-    public struct Lexer<Input: Parser_Primitives.Parser.Input & ~Copyable>: ~Copyable
+    public struct Lexer<Input: Parser_Primitives.Parser.Input.`Protocol` & ~Copyable>: ~Copyable
     where Input.Element == UInt8 {
         /// The input being lexed.
         @usableFromInline
@@ -56,7 +56,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
         mutating get {
             guard !input.isEmpty else { return nil }
             let cp = input.checkpoint
-            let byte = input.next()!
+            let byte = try! input.advance()
             input.setPosition(to: cp)
             return byte
         }
@@ -65,7 +65,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
     /// Advances by one byte, updating position. Returns the consumed byte.
     @inlinable @discardableResult
     internal mutating func advance() -> UInt8 {
-        let byte = input.next()!
+        let byte = try! input.advance()
         let isNewline = byte == .ascii.lf
         position = RFC_8259.Position(
             offset: position.offset + 1,
