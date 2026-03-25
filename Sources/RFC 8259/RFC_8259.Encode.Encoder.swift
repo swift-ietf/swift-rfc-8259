@@ -119,8 +119,8 @@ extension RFC_8259.Encode.Encoder {
 
     /// Scans UTF-8 bytes, bulk-copies safe ranges and emits escape sequences.
     ///
-    /// Extracted as `@unsafe` so the entire pointer-arithmetic body is
-    /// a single unsafe region — no per-expression annotations needed.
+    /// Marked `@unsafe` because the entire body is pointer arithmetic;
+    /// each unsafe expression is annotated individually.
     @unsafe
     @usableFromInline
     @inline(__always)
@@ -130,65 +130,65 @@ extension RFC_8259.Encode.Encoder {
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
         guard let base = utf8.baseAddress else { return }
-        var cursor = base
-        let end = base + utf8.count
-        var mark = cursor
+        var cursor = unsafe base
+        let end = unsafe base + utf8.count
+        var mark = unsafe cursor
 
-        while cursor < end {
-            switch cursor.pointee {
+        while unsafe cursor < end {
+            switch unsafe cursor.pointee {
             case 0x22: // "
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeQuote)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x5C: // \
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeBackslash)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x2F where escapeSlashes: // /
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeSlash)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x08: // backspace
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeBackspace)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x0C: // formfeed
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeFormfeed)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x0A: // newline
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeNewline)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x0D: // carriage return
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeCarriageReturn)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x09: // tab
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeTab)
-                cursor += 1
-                mark = cursor
+                unsafe cursor += 1
+                unsafe mark = cursor
             case 0x00...0x1F: // other control chars → \uXXXX
-                _appendSafe(from: mark, to: cursor, into: &buffer)
+                unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
                 buffer.append(contentsOf: Self.escapeUnicodePrefix)
-                encodeHex(UInt16(cursor.pointee), into: &buffer)
-                cursor += 1
-                mark = cursor
+                unsafe encodeHex(UInt16(cursor.pointee), into: &buffer)
+                unsafe cursor += 1
+                unsafe mark = cursor
             default:
-                cursor += 1 // accumulate
+                unsafe cursor += 1 // accumulate
             }
         }
 
         // Write remaining safe bytes
-        _appendSafe(from: mark, to: cursor, into: &buffer)
+        unsafe _appendSafe(from: mark, to: cursor, into: &buffer)
     }
 
     /// Appends bytes from mark to cursor (bulk copy of safe range).
@@ -200,9 +200,9 @@ extension RFC_8259.Encode.Encoder {
         to cursor: UnsafePointer<UInt8>,
         into buffer: inout Buffer
     ) where Buffer.Element == UInt8 {
-        let count = cursor - mark
+        let count = unsafe cursor - mark
         if count > 0 {
-            buffer.append(contentsOf: UnsafeBufferPointer(start: mark, count: count))
+            unsafe buffer.append(contentsOf: UnsafeBufferPointer(start: mark, count: count))
         }
     }
 
