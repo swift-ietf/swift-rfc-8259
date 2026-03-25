@@ -29,7 +29,7 @@ extension RFC_8259 {
 
         /// Current position for error reporting.
         @usableFromInline
-        internal var position: RFC_8259.Position
+        internal var _position: RFC_8259.Position
 
         /// Creates a lexer for the given input.
         ///
@@ -37,13 +37,20 @@ extension RFC_8259 {
         @inlinable
         public init(_ input: consuming Input) {
             self.input = input
-            self.position = RFC_8259.Position(offset: 0, line: 1, column: 1)
+            self._position = RFC_8259.Position(
+                offset: .zero,
+                location: Text.Location(line: 1, column: .one)
+            )
         }
+    }
+}
 
-        /// The current position in the input.
-        public var currentPosition: RFC_8259.Position {
-            position
-        }
+// MARK: - Lexer Public API
+
+extension RFC_8259.Lexer where Input: ~Copyable {
+    /// The current position in the input.
+    public var position: RFC_8259.Position {
+        _position
     }
 }
 
@@ -67,10 +74,17 @@ extension RFC_8259.Lexer where Input: ~Copyable {
     internal mutating func advance() -> UInt8 {
         let byte = try! input.advance()
         let isNewline = byte == .ascii.lf
-        position = RFC_8259.Position(
-            offset: position.offset + 1,
-            line: isNewline ? position.line + 1 : position.line,
-            column: isNewline ? 1 : position.column + 1
+        _position = RFC_8259.Position(
+            offset: _position.offset.successor.saturating(),
+            location: isNewline
+                ? Text.Location(
+                    line: Text.Line.Number(_position.location.line.rawValue &+ 1),
+                    column: .one
+                  )
+                : Text.Location(
+                    line: _position.location.line,
+                    column: Text.Line.Column(Cardinal(_position.location.column.rawValue.rawValue &+ 1))
+                  )
         )
         return byte
     }
@@ -141,7 +155,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
 
         default:
             throw .unexpectedToken(
-                at: position,
+                at: _position,
                 found: .unknown(byte),
                 expected: .value
             )
@@ -188,10 +202,10 @@ extension RFC_8259.Lexer where Input: ~Copyable {
     /// Expects the given literal bytes.
     @inlinable
     internal mutating func expectLiteral(_ expected: [UInt8]) throws(RFC_8259.Error) {
-        let startPos = position
+        let startPos = _position
         for expectedByte in expected {
             guard let byte = peek else {
-                throw .unexpectedEndOfInput(at: position, expected: .value)
+                throw .unexpectedEndOfInput(at: _position, expected: .value)
             }
             guard byte == expectedByte else {
                 throw .unexpectedToken(at: startPos, found: .unknown(byte), expected: .value)
@@ -207,7 +221,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
     /// Lexes a JSON string.
     @inlinable
     internal mutating func lexString() throws(RFC_8259.Error) -> RFC_8259.Token {
-        let startPos = position
+        let startPos = _position
 
         // Consume opening quote
         advance() // Skip "
@@ -218,15 +232,14 @@ extension RFC_8259.Lexer where Input: ~Copyable {
             switch byte {
             case .ascii.quotationMark:      // " - closing quote
                 advance()
-                let string = String(decoding: result, as: UTF8.self)
-                return .string(string)
+                return .string(String(decoding: result, as: UTF8.self))
 
             case .ascii.reverseSlant:       // \ - escape sequence
                 advance()
                 try result.append(contentsOf: lexEscapeSequence())
 
             case 0x00...0x1F:               // Control characters (C0 range)
-                throw .invalidString(at: position, reason: .controlCharacter(byte))
+                throw .invalidString(at: _position, reason: .controlCharacter(byte))
 
             default:
                 // Regular character - validate UTF-8
@@ -242,7 +255,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
     @inlinable
     internal mutating func lexEscapeSequence() throws(RFC_8259.Error) -> [UInt8] {
         guard let byte = peek else {
-            throw .unexpectedEndOfInput(at: position, expected: .value)
+            throw .unexpectedEndOfInput(at: _position, expected: .value)
         }
 
         advance()
@@ -258,7 +271,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
         case .ascii.t:              return [.ascii.htab]            // \t
         case .ascii.u:              return try lexUnicodeEscape()   // \uXXXX
         default:
-            throw .invalidString(at: position, reason: .invalidEscape(byte))
+            throw .invalidString(at: _position, reason: .invalidEscape(byte))
         }
     }
 
@@ -270,17 +283,17 @@ extension RFC_8259.Lexer where Input: ~Copyable {
 
         for _ in 0..<4 {
             guard let byte = peek else {
-                throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+                throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
             }
             guard byte.ascii.isHexDigit else {
-                throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+                throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
             }
             hex.append(byte)
             advance()
         }
 
         guard let codePoint = parseHex(hex) else {
-            throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+            throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
         }
 
         // Handle surrogate pairs - check BEFORE trying to create Unicode.Scalar
@@ -288,11 +301,11 @@ extension RFC_8259.Lexer where Input: ~Copyable {
         if codePoint >= 0xD800 && codePoint <= 0xDBFF {
             // High surrogate - expect low surrogate
             guard peek == .ascii.reverseSlant else {
-                throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+                throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
             }
             advance()
             guard peek == .ascii.u else {
-                throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+                throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
             }
             advance()
 
@@ -300,7 +313,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
             lowHex.reserveCapacity(4)
             for _ in 0..<4 {
                 guard let byte = peek, byte.ascii.isHexDigit else {
-                    throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+                    throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
                 }
                 lowHex.append(byte)
                 advance()
@@ -308,20 +321,20 @@ extension RFC_8259.Lexer where Input: ~Copyable {
 
             guard let lowCodePoint = parseHex(lowHex),
                   lowCodePoint >= 0xDC00 && lowCodePoint <= 0xDFFF else {
-                throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+                throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
             }
 
             // Combine surrogate pair
             let combined = 0x10000 + ((codePoint - 0xD800) << 10) + (lowCodePoint - 0xDC00)
             guard let combinedScalar = Unicode.Scalar(combined) else {
-                throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+                throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
             }
             return Swift.Array(String(combinedScalar).utf8)
         }
 
         // Not a surrogate - create scalar directly
         guard let scalar = Unicode.Scalar(codePoint) else {
-            throw .invalidString(at: position, reason: .invalidUnicodeEscape)
+            throw .invalidString(at: _position, reason: .invalidUnicodeEscape)
         }
         return Swift.Array(String(scalar).utf8)
     }
@@ -348,7 +361,7 @@ extension RFC_8259.Lexer where Input: ~Copyable {
     /// avoiding heap allocation for typical JSON numbers (< 24 bytes).
     @inlinable
     internal mutating func lexNumber() throws(RFC_8259.Error) -> RFC_8259.Token {
-        let startPos = position
+        let startPos = _position
         var bytes = Array_Primitives.Array<UInt8>.Small<24>()
 
         // Optional minus

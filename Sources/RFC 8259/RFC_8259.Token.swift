@@ -46,11 +46,11 @@ extension RFC_8259 {
     }
 }
 
-// MARK: - Token to TokenKind
+// MARK: - Token to Kind
 
 extension RFC_8259.Token {
-    /// Converts this token to a TokenKind for error reporting.
-    public var kind: RFC_8259.TokenKind {
+    /// Converts this token to a Kind for error reporting.
+    public var kind: Kind {
         switch self {
         case .objectStart: return .objectStart
         case .objectEnd: return .objectEnd

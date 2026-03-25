@@ -294,7 +294,7 @@ struct RFC8259ConformanceTests {
         let json = "{\"key\":1,\"key\":2}"
         let value = try RFC_8259.parse(json)
         // Behavior: both are stored; first match wins on lookup
-        #expect(value["key"]?.number?.int64Value == 1)
+        #expect(value["key"]?.number?.int64 == 1)
     }
 
     // MARK: - Large Numbers
@@ -302,12 +302,12 @@ struct RFC8259ConformanceTests {
     @Test("Parse large integer")
     func parseLargeInteger() throws {
         let value = try RFC_8259.parse("9223372036854775807")
-        #expect(value.number?.int64Value == Int64.max)
+        #expect(value.number?.int64 == Int64.max)
     }
 
     @Test("Parse very large number as double")
     func parseVeryLargeNumber() throws {
         let value = try RFC_8259.parse("1e308")
-        #expect(value.number?.doubleValue != nil)
+        #expect(value.number?.double != nil)
     }
 }

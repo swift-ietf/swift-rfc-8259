@@ -1,10 +1,13 @@
-/// RFC_8259.ParserPrinter.Prototype.swift
-/// swift-rfc-8259
-///
-/// PROTOTYPE: Demonstrates how RFC_8259 could be restructured using
-/// swift-parser-primitives' `Parser`, `Printer`, and `ParserPrinter` abstractions.
-///
-/// This file is NOT production code - it's a design exploration.
+// MARK: - ParserPrinter Codec for RFC 8259
+// Purpose: Evaluate ParserPrinter-based JSON codec vs current Lexer/Parser/Encoder pipeline
+// Hypothesis: Single ParserPrinter definition provides bidirectional JSON codec
+//             with round-trip correctness by construction
+//
+// Toolchain: (pending execution)
+// Platform: (pending execution)
+//
+// Result: (PENDING)
+// Date: 2026-03-24
 
 import Parser_Primitives
 
@@ -13,18 +16,18 @@ import Parser_Primitives
 /*
  Current Architecture:
  =====================
- RFC_8259.Lexer<Input>  → Produces RFC_8259.Token stream
- RFC_8259.Parser<Input> → Consumes tokens, produces RFC_8259.Value tree
- RFC_8259.Encoder       → Produces [UInt8] from RFC_8259.Value
+ RFC_8259.Lexer<Input>  -> Produces RFC_8259.Token stream
+ RFC_8259.Parser<Input> -> Consumes tokens, produces RFC_8259.Value tree
+ RFC_8259.Encoder       -> Produces [UInt8] from RFC_8259.Value
 
  Proposed Architecture (using Parsing Primitives):
  =================================================
- RFC_8259.JSON          → ParserPrinter for complete JSON values
- RFC_8259.JSON.String   → ParserPrinter for JSON strings
- RFC_8259.JSON.Number   → ParserPrinter for JSON numbers
- RFC_8259.JSON.Literal  → ParserPrinter for null/true/false
- RFC_8259.JSON.Array    → ParserPrinter for JSON arrays
- RFC_8259.JSON.Object   → ParserPrinter for JSON objects
+ RFC_8259.JSON          -> ParserPrinter for complete JSON values
+ RFC_8259.JSON.String   -> ParserPrinter for JSON strings
+ RFC_8259.JSON.Number   -> ParserPrinter for JSON numbers
+ RFC_8259.JSON.Literal  -> ParserPrinter for null/true/false
+ RFC_8259.JSON.Array    -> ParserPrinter for JSON arrays
+ RFC_8259.JSON.Object   -> ParserPrinter for JSON objects
 
  Benefits:
  - Single definition for both parsing and printing
@@ -44,7 +47,7 @@ extension RFC_8259 {
     /// Unified error type for both parsing and printing.
     ///
     /// Named `PPError` to avoid collision with existing `RFC_8259.Error`.
-    public enum PPError: Swift.Error, Sendable {
+    enum PPError: Swift.Error, Sendable {
         case unexpectedEndOfInput
         case unexpectedByte(UInt8, expected: String)
         case invalidEscapeSequence
@@ -60,18 +63,18 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON literals (null, true, false).
-    public struct LiteralParserPrinter: Parser_Primitives.Parser.Bidirectional {
-        public typealias Input = ArraySlice<UInt8>
-        public typealias Output = Value
-        public typealias Failure = PPError
+    struct LiteralParserPrinter: Parser_Primitives.Parser.Bidirectional {
+        typealias Input = ArraySlice<UInt8>
+        typealias Output = Value
+        typealias Failure = PPError
 
         @inlinable
-        public init() {}
+        init() {}
 
         // MARK: Parser
 
         @inlinable
-        public func parse(_ input: inout Input) throws(Failure) -> Value {
+        func parse(_ input: inout Input) throws(Failure) -> Value {
             guard let first = input.first else {
                 throw .unexpectedEndOfInput
             }
@@ -110,7 +113,7 @@ extension RFC_8259 {
         // MARK: Printer
 
         @inlinable
-        public func print(_ output: Value, into input: inout Input) throws(Failure) {
+        func print(_ output: Value, into input: inout Input) throws(Failure) {
             switch output {
             case .null:
                 // Prepend "null" (reversed for prepend semantics)
@@ -130,18 +133,18 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON strings.
-    public struct StringParserPrinter: Parser_Primitives.Parser.Bidirectional {
-        public typealias Input = ArraySlice<UInt8>
-        public typealias Output = String
-        public typealias Failure = PPError
+    struct StringParserPrinter: Parser_Primitives.Parser.Bidirectional {
+        typealias Input = ArraySlice<UInt8>
+        typealias Output = String
+        typealias Failure = PPError
 
         @inlinable
-        public init() {}
+        init() {}
 
         // MARK: Parser
 
         @inlinable
-        public func parse(_ input: inout Input) throws(Failure) -> String {
+        func parse(_ input: inout Input) throws(Failure) -> String {
             guard input.first == .ascii.quotationMark else {
                 throw .unexpectedByte(input.first ?? 0, expected: "\"")
             }
@@ -258,7 +261,7 @@ extension RFC_8259 {
         // MARK: Printer
 
         @inlinable
-        public func print(_ output: String, into input: inout Input) throws(Failure) {
+        func print(_ output: String, into input: inout Input) throws(Failure) {
             // Build escaped string
             var escaped: [UInt8] = [.ascii.quotationMark] // opening "
 
@@ -279,7 +282,7 @@ extension RFC_8259 {
                 case .ascii.htab:
                     escaped.append(contentsOf: [.ascii.reverseSlant, .ascii.t])
                 case 0x00...0x1F:
-                    // Control character → \uXXXX
+                    // Control character -> \uXXXX
                     escaped.append(contentsOf: [.ascii.reverseSlant, .ascii.u, .ascii.`0`, .ascii.`0`])
                     escaped.append(hexDigit(byte >> 4))
                     escaped.append(hexDigit(byte & 0x0F))
@@ -305,18 +308,18 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// ParserPrinter for JSON numbers.
-    public struct NumberParserPrinter: Parser_Primitives.Parser.Bidirectional {
-        public typealias Input = ArraySlice<UInt8>
-        public typealias Output = Number
-        public typealias Failure = PPError
+    struct NumberParserPrinter: Parser_Primitives.Parser.Bidirectional {
+        typealias Input = ArraySlice<UInt8>
+        typealias Output = Number
+        typealias Failure = PPError
 
         @inlinable
-        public init() {}
+        init() {}
 
         // MARK: Parser
 
         @inlinable
-        public func parse(_ input: inout Input) throws(Failure) -> Number {
+        func parse(_ input: inout Input) throws(Failure) -> Number {
             var bytes: [UInt8] = []
 
             // Optional minus
@@ -399,7 +402,7 @@ extension RFC_8259 {
         // MARK: Printer
 
         @inlinable
-        public func print(_ output: Number, into input: inout Input) throws(Failure) {
+        func print(_ output: Number, into input: inout Input) throws(Failure) {
             // Use original representation for lossless round-trip
             input.insert(contentsOf: output.original.bytes, at: input.startIndex)
         }
@@ -410,16 +413,16 @@ extension RFC_8259 {
 
 extension RFC_8259 {
     /// Parser for optional JSON whitespace.
-    public struct WhitespaceParser: Parser_Primitives.Parser.`Protocol` {
-        public typealias Input = ArraySlice<UInt8>
-        public typealias Output = Void
-        public typealias Failure = Never
+    struct WhitespaceParser: Parser_Primitives.Parser.`Protocol` {
+        typealias Input = ArraySlice<UInt8>
+        typealias Output = Void
+        typealias Failure = Never
 
         @inlinable
-        public init() {}
+        init() {}
 
         @inlinable
-        public func parse(_ input: inout Input) throws(Never) {
+        func parse(_ input: inout Input) throws(Never) {
             while let byte = input.first, RFC_8259.isWhitespace(byte) {
                 input.removeFirst()
             }
@@ -434,10 +437,10 @@ extension RFC_8259 {
     ///
     /// This is the top-level parser/printer that handles all JSON value types.
     /// It uses mutual recursion with ArrayParserPrinter and ObjectParserPrinter.
-    public struct ValueParserPrinter: Parser_Primitives.Parser.Bidirectional {
-        public typealias Input = ArraySlice<UInt8>
-        public typealias Output = Value
-        public typealias Failure = PPError
+    struct ValueParserPrinter: Parser_Primitives.Parser.Bidirectional {
+        typealias Input = ArraySlice<UInt8>
+        typealias Output = Value
+        typealias Failure = PPError
 
         @usableFromInline
         let maxDepth: Int
@@ -446,7 +449,7 @@ extension RFC_8259 {
         var currentDepth: Int
 
         @inlinable
-        public init(maxDepth: Int = 512) {
+        init(maxDepth: Int = 512) {
             self.maxDepth = maxDepth
             self.currentDepth = 0
         }
@@ -454,7 +457,7 @@ extension RFC_8259 {
         // MARK: Parser
 
         @inlinable
-        public func parse(_ input: inout Input) throws(Failure) -> Value {
+        func parse(_ input: inout Input) throws(Failure) -> Value {
             // Skip leading whitespace
             skipWhitespace(&input)
 
@@ -586,7 +589,7 @@ extension RFC_8259 {
         // MARK: Printer
 
         @inlinable
-        public func print(_ output: Value, into input: inout Input) throws(Failure) {
+        func print(_ output: Value, into input: inout Input) throws(Failure) {
             switch output {
             case .null, .bool:
                 try LiteralParserPrinter().print(output, into: &input)
@@ -703,7 +706,7 @@ extension RFC_8259 {
 
  PERFORMANCE CONSIDERATIONS:
  - Prepend-based printing: Each insert at startIndex copies existing elements
- - For large JSON, this could be O(n²) vs O(n) for append-based
+ - For large JSON, this could be O(n^2) vs O(n) for append-based
  - Could mitigate with:
    a) Build in reverse order, then reverse final output
    b) Use a rope/gap buffer data structure
@@ -716,3 +719,50 @@ extension RFC_8259 {
    * Validation/schema-based parsing
    * Streaming/incremental parsing scenarios
 */
+
+// MARK: - Test Harness
+
+let testCases: [(json: String, label: String)] = [
+    (#"null"#, "null literal"),
+    (#"true"#, "true literal"),
+    (#"false"#, "false literal"),
+    (#""hello""#, "simple string"),
+    (#""hello\"world""#, "escaped string"),
+    (#"42"#, "integer"),
+    (#"3.14"#, "float"),
+    (#"-123"#, "negative integer"),
+    (#"1e10"#, "scientific notation"),
+    (#"[1,2,3]"#, "simple array"),
+    (#"[]"#, "empty array"),
+    (#"{"key":"value"}"#, "simple object"),
+    (#"{}"#, "empty object"),
+    (#"{"a":{"b":{"c":1}}}"#, "nested object"),
+    (#"[1,[2,[3]]]"#, "nested array"),
+]
+
+var passed = 0
+var failed = 0
+
+for (json, label) in testCases {
+    var input = ArraySlice(json.utf8)
+    do {
+        let parsed = try RFC_8259.ValueParserPrinter().parse(&input)
+
+        var output: ArraySlice<UInt8> = []
+        try RFC_8259.ValueParserPrinter().print(parsed, into: &output)
+        let result = String(decoding: output, as: UTF8.self)
+
+        if json == result {
+            print("  PASS: \(label)")
+            passed += 1
+        } else {
+            print("  FAIL: \(label) \u2014 expected \(json), got \(result)")
+            failed += 1
+        }
+    } catch {
+        print("  FAIL: \(label) \u2014 \(error)")
+        failed += 1
+    }
+}
+
+print("\nResults: \(passed) passed, \(failed) failed")

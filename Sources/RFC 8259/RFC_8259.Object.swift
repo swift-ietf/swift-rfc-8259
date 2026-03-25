@@ -18,17 +18,6 @@ extension RFC_8259 {
     /// object = begin-object [ member *( value-separator member ) ] end-object
     /// member = string name-separator value
     /// ```
-    ///
-    /// ## Usage
-    ///
-    /// ```swift
-    /// let obj = value.object!
-    /// print(obj["name"])  // Access by key
-    ///
-    /// for (key, value) in obj {
-    ///     print("\(key): \(value)")
-    /// }
-    /// ```
     public struct Object: Sendable, Hashable {
         /// Internal storage preserving insertion order.
         @usableFromInline
@@ -45,26 +34,30 @@ extension RFC_8259 {
         public init(_ elements: [(key: String, value: Value)]) {
             _storage = elements
         }
+    }
+}
 
-        /// The number of key-value pairs.
-        public var count: Int {
-            _storage.count
-        }
+// MARK: - Object Computed Properties
 
-        /// True if the object has no members.
-        public var isEmpty: Bool {
-            _storage.isEmpty
-        }
+extension RFC_8259.Object {
+    /// The number of key-value pairs.
+    public var count: Int {
+        _storage.count
+    }
 
-        /// All keys in insertion order.
-        public var keys: [String] {
-            _storage.map { $0.key }
-        }
+    /// True if the object has no members.
+    public var isEmpty: Bool {
+        _storage.isEmpty
+    }
 
-        /// All values in insertion order.
-        public var values: [Value] {
-            _storage.map { $0.value }
-        }
+    /// All keys in insertion order.
+    public var keys: [String] {
+        _storage.map { $0.key }
+    }
+
+    /// All values in insertion order.
+    public var values: [Value] {
+        _storage.map { $0.value }
     }
 }
 
@@ -99,21 +92,6 @@ extension RFC_8259.Object {
 
 extension RFC_8259.Object: Swift.Sequence {
     public typealias Element = (key: String, value: RFC_8259.Value)
-
-    public struct Iterator: Swift.IteratorProtocol {
-        @usableFromInline
-        internal var base: IndexingIterator<[(key: String, value: RFC_8259.Value)]>
-
-        @usableFromInline
-        internal init(_ storage: [(key: String, value: RFC_8259.Value)]) {
-            self.base = storage.makeIterator()
-        }
-
-        @inlinable
-        public mutating func next() -> Element? {
-            base.next()
-        }
-    }
 
     @inlinable
     public func makeIterator() -> Iterator {

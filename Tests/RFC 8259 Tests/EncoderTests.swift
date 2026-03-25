@@ -136,7 +136,7 @@ struct EncoderTests {
     @Test("Encode with sorted keys")
     func encodeSortedKeys() {
         let value: RFC_8259.Value = ["b": 2, "a": 1]
-        let options = RFC_8259.Options(sortKeys: true)
+        let options = RFC_8259.Encode.Options(sortKeys: true)
         let bytes = value.encode(options: options)
         #expect(String(decoding: bytes, as: UTF8.self) == "{\"a\":1,\"b\":2}")
     }
@@ -144,7 +144,7 @@ struct EncoderTests {
     @Test("Encode with escaped slashes")
     func encodeEscapedSlashes() {
         let value: RFC_8259.Value = "http://example.com"
-        let options = RFC_8259.Options(escapeSlashes: true)
+        let options = RFC_8259.Encode.Options(escapeSlashes: true)
         let bytes = value.encode(options: options)
         #expect(String(decoding: bytes, as: UTF8.self) == "\"http:\\/\\/example.com\"")
     }
@@ -152,7 +152,7 @@ struct EncoderTests {
     @Test("Encode pretty printed array")
     func encodePrettyArray() throws {
         let value = try RFC_8259.parse("[1, 2]")
-        let options = RFC_8259.Options(prettyPrint: true)
+        let options = RFC_8259.Encode.Options(prettyPrint: true)
         let bytes = value.encode(options: options)
         let expected = """
         [
@@ -166,7 +166,7 @@ struct EncoderTests {
     @Test("Encode pretty printed object")
     func encodePrettyObject() {
         let value: RFC_8259.Value = ["key": "value"]
-        let options = RFC_8259.Options(prettyPrint: true)
+        let options = RFC_8259.Encode.Options(prettyPrint: true)
         let bytes = value.encode(options: options)
         let expected = """
         {
@@ -201,7 +201,7 @@ struct EncoderTests {
         // In Unicode collation, "é" might sort near "e", but in UTF-8 byte order
         // it sorts after ASCII characters
         let value: RFC_8259.Value = ["é": 1, "e": 2, "f": 3]
-        let options = RFC_8259.Options(sortKeys: true)
+        let options = RFC_8259.Encode.Options(sortKeys: true)
         let bytes = value.encode(options: options)
         let result = String(decoding: bytes, as: UTF8.self)
 
@@ -213,7 +213,7 @@ struct EncoderTests {
     func sortKeysWithEmoji() {
         // Emoji have high UTF-8 byte values (4-byte sequences starting with 0xF0)
         let value: RFC_8259.Value = ["a": 1, "😀": 2, "z": 3]
-        let options = RFC_8259.Options(sortKeys: true)
+        let options = RFC_8259.Encode.Options(sortKeys: true)
         let bytes = value.encode(options: options)
         let result = String(decoding: bytes, as: UTF8.self)
 

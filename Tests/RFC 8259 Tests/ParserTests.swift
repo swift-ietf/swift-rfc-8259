@@ -34,55 +34,55 @@ struct ParserTests {
     @Test("Parse integer")
     func parseInteger() throws {
         let value = try RFC_8259.parse("42")
-        #expect(value.number?.int64Value == 42)
+        #expect(value.number?.int64 == 42)
     }
 
     @Test("Parse negative integer")
     func parseNegativeInteger() throws {
         let value = try RFC_8259.parse("-123")
-        #expect(value.number?.int64Value == -123)
+        #expect(value.number?.int64 == -123)
     }
 
     @Test("Parse floating point")
     func parseFloat() throws {
         let value = try RFC_8259.parse("3.14")
-        #expect(value.number?.doubleValue == 3.14)
+        #expect(value.number?.double == 3.14)
     }
 
     @Test("Parse scientific notation")
     func parseScientific() throws {
         let value = try RFC_8259.parse("1.5e10")
-        #expect(value.number?.doubleValue == 1.5e10)
+        #expect(value.number?.double == 1.5e10)
     }
 
     @Test("Parse zero")
     func parseZero() throws {
         let value = try RFC_8259.parse("0")
-        #expect(value.number?.int64Value == 0)
+        #expect(value.number?.int64 == 0)
     }
 
     @Test("Parse negative zero")
     func parseNegativeZero() throws {
         let value = try RFC_8259.parse("-0")
-        #expect(value.number?.doubleValue == 0)
+        #expect(value.number?.double == 0)
     }
 
     @Test("Parse exponent with plus sign")
     func parseExponentPlus() throws {
         let value = try RFC_8259.parse("1e+10")
-        #expect(value.number?.doubleValue == 1e10)
+        #expect(value.number?.double == 1e10)
     }
 
     @Test("Parse exponent with minus sign")
     func parseExponentMinus() throws {
         let value = try RFC_8259.parse("1e-10")
-        #expect(value.number?.doubleValue == 1e-10)
+        #expect(value.number?.double == 1e-10)
     }
 
     @Test("Parse uppercase exponent")
     func parseUppercaseExponent() throws {
         let value = try RFC_8259.parse("1E10")
-        #expect(value.number?.doubleValue == 1e10)
+        #expect(value.number?.double == 1e10)
     }
 
     // MARK: - Strings
@@ -141,7 +141,7 @@ struct ParserTests {
     func parseArraySingleValue() throws {
         let value = try RFC_8259.parse("[42]")
         #expect(value.array?.count == 1)
-        #expect(value[0]?.number?.int64Value == 42)
+        #expect(value[0]?.number?.int64 == 42)
     }
 
     @Test("Parse array with values")
@@ -149,15 +149,15 @@ struct ParserTests {
         let value = try RFC_8259.parse("[1, 2, 3]")
         let array = value.array
         #expect(array?.count == 3)
-        #expect(array?[0].number?.int64Value == 1)
-        #expect(array?[1].number?.int64Value == 2)
-        #expect(array?[2].number?.int64Value == 3)
+        #expect(array?[0].number?.int64 == 1)
+        #expect(array?[1].number?.int64 == 2)
+        #expect(array?[2].number?.int64 == 3)
     }
 
     @Test("Parse array with mixed types")
     func parseArrayMixed() throws {
         let value = try RFC_8259.parse("[1, \"two\", true, null]")
-        #expect(value[0]?.number?.int64Value == 1)
+        #expect(value[0]?.number?.int64 == 1)
         #expect(value[1]?.string == "two")
         #expect(value[2]?.bool == true)
         #expect(value[3]?.isNull == true)
@@ -181,7 +181,7 @@ struct ParserTests {
     func parseObject() throws {
         let value = try RFC_8259.parse("{\"name\": \"John\", \"age\": 30}")
         #expect(value["name"]?.string == "John")
-        #expect(value["age"]?.number?.int64Value == 30)
+        #expect(value["age"]?.number?.int64 == 30)
     }
 
     // MARK: - Nested Structures
@@ -206,13 +206,13 @@ struct ParserTests {
     @Test("Parse deeply nested arrays")
     func parseDeeplyNestedArrays() throws {
         let value = try RFC_8259.parse("[[[1]]]")
-        #expect(value[0]?[0]?[0]?.number?.int64Value == 1)
+        #expect(value[0]?[0]?[0]?.number?.int64 == 1)
     }
 
     @Test("Parse deeply nested objects")
     func parseDeeplyNestedObjects() throws {
         let value = try RFC_8259.parse("{\"a\":{\"b\":{\"c\":1}}}")
-        #expect(value["a"]?["b"]?["c"]?.number?.int64Value == 1)
+        #expect(value["a"]?["b"]?["c"]?.number?.int64 == 1)
     }
 
     // MARK: - Whitespace
@@ -227,7 +227,7 @@ struct ParserTests {
     func handleAllWhitespace() throws {
         let json = "[\t\n\r 1\t\n\r ,\t\n\r 2\t\n\r ]"
         let value = try RFC_8259.parse(json)
-        #expect(value[0]?.number?.int64Value == 1)
-        #expect(value[1]?.number?.int64Value == 2)
+        #expect(value[0]?.number?.int64 == 1)
+        #expect(value[1]?.number?.int64 == 2)
     }
 }

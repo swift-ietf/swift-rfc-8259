@@ -54,17 +54,17 @@ extension RFC_8259 {
             self.maxDepth = maxDepth
             self.lookahead = nil
         }
-
-        /// The current position in the input.
-        public var currentPosition: Position {
-            lexer.currentPosition
-        }
     }
 }
 
 // MARK: - Parser Public API
 
 extension RFC_8259.Parser where Input: ~Copyable {
+    /// The current position in the input.
+    public var position: RFC_8259.Position {
+        lexer.position
+    }
+
     /// Parses the input and returns a JSON value.
     ///
     /// - Throws: `RFC_8259.Error` if parsing fails.
@@ -75,7 +75,7 @@ extension RFC_8259.Parser where Input: ~Copyable {
 
         // Ensure no trailing content (except whitespace)
         if try nextToken() != nil {
-            throw .trailingContent(at: lexer.currentPosition)
+            throw .trailingContent(at: lexer.position)
         }
 
         return value
@@ -110,7 +110,7 @@ extension RFC_8259.Parser where Input: ~Copyable {
     @inlinable
     internal mutating func parseValue() throws(RFC_8259.Error) -> RFC_8259.Value {
         guard let token = try nextToken() else {
-            throw .unexpectedEndOfInput(at: lexer.currentPosition, expected: .value)
+            throw .unexpectedEndOfInput(at: lexer.position, expected: .value)
         }
 
         switch token {
@@ -137,7 +137,7 @@ extension RFC_8259.Parser where Input: ~Copyable {
 
         case .objectEnd, .arrayEnd, .colon, .comma:
             throw .unexpectedToken(
-                at: lexer.currentPosition,
+                at: lexer.position,
                 found: token.kind,
                 expected: .value
             )
@@ -154,7 +154,7 @@ extension RFC_8259.Parser where Input: ~Copyable {
         // Check depth
         depth += 1
         if depth > maxDepth {
-            throw .depthExceeded(at: lexer.currentPosition, limit: maxDepth)
+            throw .depthExceeded(at: lexer.position, limit: maxDepth)
         }
 
         defer { depth -= 1 }
@@ -163,7 +163,7 @@ extension RFC_8259.Parser where Input: ~Copyable {
 
         // Check for empty array
         guard let firstToken = try nextToken() else {
-            throw .unexpectedEndOfInput(at: lexer.currentPosition, expected: .value)
+            throw .unexpectedEndOfInput(at: lexer.position, expected: .value)
         }
 
         if case .arrayEnd = firstToken {
@@ -186,14 +186,14 @@ extension RFC_8259.Parser where Input: ~Copyable {
 
             default:
                 throw .unexpectedToken(
-                    at: lexer.currentPosition,
+                    at: lexer.position,
                     found: token.kind,
                     expected: .commaOrEnd
                 )
             }
         }
 
-        throw .unexpectedEndOfInput(at: lexer.currentPosition, expected: .arrayEnd)
+        throw .unexpectedEndOfInput(at: lexer.position, expected: .arrayEnd)
     }
 }
 
@@ -206,7 +206,7 @@ extension RFC_8259.Parser where Input: ~Copyable {
         // Check depth
         depth += 1
         if depth > maxDepth {
-            throw .depthExceeded(at: lexer.currentPosition, limit: maxDepth)
+            throw .depthExceeded(at: lexer.position, limit: maxDepth)
         }
 
         defer { depth -= 1 }
@@ -215,7 +215,7 @@ extension RFC_8259.Parser where Input: ~Copyable {
 
         // Check for empty object
         guard let firstToken = try nextToken() else {
-            throw .unexpectedEndOfInput(at: lexer.currentPosition, expected: .objectKey)
+            throw .unexpectedEndOfInput(at: lexer.position, expected: .objectKey)
         }
 
         if case .objectEnd = firstToken {
@@ -238,14 +238,14 @@ extension RFC_8259.Parser where Input: ~Copyable {
 
             default:
                 throw .unexpectedToken(
-                    at: lexer.currentPosition,
+                    at: lexer.position,
                     found: token.kind,
                     expected: .commaOrEnd
                 )
             }
         }
 
-        throw .unexpectedEndOfInput(at: lexer.currentPosition, expected: .objectEnd)
+        throw .unexpectedEndOfInput(at: lexer.position, expected: .objectEnd)
     }
 
     /// Parses a single object member (key: value).
@@ -253,12 +253,12 @@ extension RFC_8259.Parser where Input: ~Copyable {
     internal mutating func parseMember() throws(RFC_8259.Error) -> (key: String, value: RFC_8259.Value) {
         // Expect string key
         guard let keyToken = try nextToken() else {
-            throw .unexpectedEndOfInput(at: lexer.currentPosition, expected: .objectKey)
+            throw .unexpectedEndOfInput(at: lexer.position, expected: .objectKey)
         }
 
         guard case .string(let key) = keyToken else {
             throw .unexpectedToken(
-                at: lexer.currentPosition,
+                at: lexer.position,
                 found: keyToken.kind,
                 expected: .objectKey
             )
@@ -266,12 +266,12 @@ extension RFC_8259.Parser where Input: ~Copyable {
 
         // Expect colon
         guard let colonToken = try nextToken() else {
-            throw .unexpectedEndOfInput(at: lexer.currentPosition, expected: .colon)
+            throw .unexpectedEndOfInput(at: lexer.position, expected: .colon)
         }
 
         guard case .colon = colonToken else {
             throw .unexpectedToken(
-                at: lexer.currentPosition,
+                at: lexer.position,
                 found: colonToken.kind,
                 expected: .colon
             )

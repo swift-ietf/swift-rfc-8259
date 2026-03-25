@@ -4,7 +4,7 @@
 /// Tests for the JSON lexer
 
 import Testing
-import Parser_Primitives
+import Input_Primitives
 @testable import RFC_8259
 
 @Suite("Lexer Tests")
@@ -14,7 +14,7 @@ struct LexerTests {
 
     @Test("Lex structural tokens")
     func lexStructural() throws {
-        let input = Parsing.CollectionInput(Array("{}[],:".utf8))
+        let input = Input.Buffer(Swift.Array("{}[],:".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(try lexer.next() == .objectStart)
@@ -30,7 +30,7 @@ struct LexerTests {
 
     @Test("Lex null")
     func lexNull() throws {
-        let input = Parsing.CollectionInput(Array("null".utf8))
+        let input = Input.Buffer(Swift.Array("null".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(try lexer.next() == .null)
@@ -39,7 +39,7 @@ struct LexerTests {
 
     @Test("Lex true")
     func lexTrue() throws {
-        let input = Parsing.CollectionInput(Array("true".utf8))
+        let input = Input.Buffer(Swift.Array("true".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(try lexer.next() == .true)
@@ -48,7 +48,7 @@ struct LexerTests {
 
     @Test("Lex false")
     func lexFalse() throws {
-        let input = Parsing.CollectionInput(Array("false".utf8))
+        let input = Input.Buffer(Swift.Array("false".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(try lexer.next() == .false)
@@ -59,7 +59,7 @@ struct LexerTests {
 
     @Test("Lex integer")
     func lexInteger() throws {
-        let input = Parsing.CollectionInput(Array("42".utf8))
+        let input = Input.Buffer(Swift.Array("42".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         let token = try lexer.next()
@@ -67,12 +67,12 @@ struct LexerTests {
             Issue.record("Expected number token")
             return
         }
-        #expect(n.int64Value == 42)
+        #expect(n.int64 == 42)
     }
 
     @Test("Lex negative integer")
     func lexNegativeInteger() throws {
-        let input = Parsing.CollectionInput(Array("-123".utf8))
+        let input = Input.Buffer(Swift.Array("-123".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         let token = try lexer.next()
@@ -80,12 +80,12 @@ struct LexerTests {
             Issue.record("Expected number token")
             return
         }
-        #expect(n.int64Value == -123)
+        #expect(n.int64 == -123)
     }
 
     @Test("Lex float")
     func lexFloat() throws {
-        let input = Parsing.CollectionInput(Array("3.14".utf8))
+        let input = Input.Buffer(Swift.Array("3.14".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         let token = try lexer.next()
@@ -93,12 +93,12 @@ struct LexerTests {
             Issue.record("Expected number token")
             return
         }
-        #expect(n.doubleValue == 3.14)
+        #expect(n.double == 3.14)
     }
 
     @Test("Lex scientific notation")
     func lexScientific() throws {
-        let input = Parsing.CollectionInput(Array("1.5e10".utf8))
+        let input = Input.Buffer(Swift.Array("1.5e10".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         let token = try lexer.next()
@@ -106,14 +106,14 @@ struct LexerTests {
             Issue.record("Expected number token")
             return
         }
-        #expect(n.doubleValue == 1.5e10)
+        #expect(n.double == 1.5e10)
     }
 
     // MARK: - Strings
 
     @Test("Lex simple string")
     func lexSimpleString() throws {
-        let input = Parsing.CollectionInput(Array("\"hello\"".utf8))
+        let input = Input.Buffer(Swift.Array("\"hello\"".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         let token = try lexer.next()
@@ -126,7 +126,7 @@ struct LexerTests {
 
     @Test("Lex string with escapes")
     func lexStringEscapes() throws {
-        let input = Parsing.CollectionInput(Array("\"hello\\nworld\"".utf8))
+        let input = Input.Buffer(Swift.Array("\"hello\\nworld\"".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         let token = try lexer.next()
@@ -139,7 +139,7 @@ struct LexerTests {
 
     @Test("Lex string with unicode escape")
     func lexUnicodeEscape() throws {
-        let input = Parsing.CollectionInput(Array("\"\\u0041\"".utf8))
+        let input = Input.Buffer(Swift.Array("\"\\u0041\"".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         let token = try lexer.next()
@@ -154,7 +154,7 @@ struct LexerTests {
 
     @Test("Skip whitespace between tokens")
     func skipWhitespace() throws {
-        let input = Parsing.CollectionInput(Array("  {  }  ".utf8))
+        let input = Input.Buffer(Swift.Array("  {  }  ".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(try lexer.next() == .objectStart)
@@ -164,7 +164,7 @@ struct LexerTests {
 
     @Test("Handle all whitespace types")
     func handleAllWhitespace() throws {
-        let input = Parsing.CollectionInput(Array("\t\n\r {\t\n\r }\t\n\r ".utf8))
+        let input = Input.Buffer(Swift.Array("\t\n\r {\t\n\r }\t\n\r ".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(try lexer.next() == .objectStart)
@@ -176,21 +176,21 @@ struct LexerTests {
 
     @Test("Track position")
     func trackPosition() throws {
-        let input = Parsing.CollectionInput(Array("{\n  \"key\": 1\n}".utf8))
+        let input = Input.Buffer(Swift.Array("{\n  \"key\": 1\n}".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         _ = try lexer.next() // {
-        #expect(lexer.currentPosition.line == 1)
+        #expect(lexer.position.location.line == 1)
 
         _ = try lexer.next() // "key"
-        #expect(lexer.currentPosition.line == 2)
+        #expect(lexer.position.location.line == 2)
     }
 
     // MARK: - Token Sequence
 
     @Test("Lex complete object")
     func lexCompleteObject() throws {
-        let input = Parsing.CollectionInput(Array("{\"name\":\"John\",\"age\":30}".utf8))
+        let input = Input.Buffer(Swift.Array("{\"name\":\"John\",\"age\":30}".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(try lexer.next() == .objectStart)
@@ -224,7 +224,7 @@ struct LexerTests {
             Issue.record("Expected number token")
             return
         }
-        #expect(n.int64Value == 30)
+        #expect(n.int64 == 30)
 
         #expect(try lexer.next() == .objectEnd)
         #expect(try lexer.next() == nil)
@@ -234,7 +234,7 @@ struct LexerTests {
 
     @Test("Reject incomplete literal")
     func rejectIncompleteLiteral() throws {
-        let input = Parsing.CollectionInput(Array("nul".utf8))
+        let input = Input.Buffer(Swift.Array("nul".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(throws: RFC_8259.Error.self) {
@@ -244,7 +244,7 @@ struct LexerTests {
 
     @Test("Reject invalid character")
     func rejectInvalidCharacter() throws {
-        let input = Parsing.CollectionInput(Array("@".utf8))
+        let input = Input.Buffer(Swift.Array("@".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(throws: RFC_8259.Error.self) {
@@ -255,7 +255,7 @@ struct LexerTests {
     @Test("Reject non-finite numbers (1e999 → overflow)")
     func rejectNonFiniteNumbers() throws {
         // 1e999 parses to Double.infinity, which should be rejected
-        let input = Parsing.CollectionInput(Array("1e999".utf8))
+        let input = Input.Buffer(Swift.Array("1e999".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(throws: RFC_8259.Error.self) {
@@ -267,7 +267,7 @@ struct LexerTests {
     func rejectExtremelySmallExponents() throws {
         // 1e-999 parses to 0.0 which is finite, so this should succeed
         // But -1e999 would be -infinity
-        let input = Parsing.CollectionInput(Array("-1e999".utf8))
+        let input = Input.Buffer(Swift.Array("-1e999".utf8))
         var lexer = RFC_8259.Lexer(input)
 
         #expect(throws: RFC_8259.Error.self) {

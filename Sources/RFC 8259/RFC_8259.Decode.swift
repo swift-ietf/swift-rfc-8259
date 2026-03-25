@@ -23,55 +23,59 @@ extension RFC_8259 {
     public struct Decode: Sendable {
         @usableFromInline
         internal init() {}
+    }
+}
 
-        /// Decodes a byte collection to a JSON value.
-        ///
-        /// - Parameters:
-        ///   - bytes: UTF-8 encoded JSON bytes.
-        ///   - maxDepth: Maximum nesting depth (default: 512).
-        /// - Throws: `RFC_8259.Error` if parsing fails.
-        /// - Returns: The parsed JSON value.
-        @inlinable
-        public func callAsFunction<C: Swift.Collection & Sendable>(
-            _ bytes: C,
-            maxDepth: Int = 512
-        ) throws(RFC_8259.Error) -> Value
-        where C.Element == UInt8, C.Index: Sendable {
-            let array = Swift.Array(bytes)
-            let input = Input.Buffer(array)
-            var parser = Parser(consume input, maxDepth: maxDepth)
-            return try parser.parse()
-        }
+// MARK: - Decode callAsFunction
 
-        /// Decodes a string to a JSON value.
-        ///
-        /// - Parameters:
-        ///   - string: JSON string (will be converted to UTF-8).
-        ///   - maxDepth: Maximum nesting depth (default: 512).
-        /// - Throws: `RFC_8259.Error` if parsing fails.
-        /// - Returns: The parsed JSON value.
-        @inlinable
-        public func callAsFunction(
-            _ string: String,
-            maxDepth: Int = 512
-        ) throws(RFC_8259.Error) -> Value {
-            try callAsFunction(Swift.Array(string.utf8), maxDepth: maxDepth)
-        }
+extension RFC_8259.Decode {
+    /// Decodes a byte collection to a JSON value.
+    ///
+    /// - Parameters:
+    ///   - bytes: UTF-8 encoded JSON bytes.
+    ///   - maxDepth: Maximum nesting depth (default: 512).
+    /// - Throws: `RFC_8259.Error` if parsing fails.
+    /// - Returns: The parsed JSON value.
+    @inlinable
+    public func callAsFunction<C: Swift.Collection & Sendable>(
+        _ bytes: C,
+        maxDepth: Int = 512
+    ) throws(RFC_8259.Error) -> RFC_8259.Value
+    where C.Element == UInt8, C.Index: Sendable {
+        let array = Swift.Array(bytes)
+        let input = Input.Buffer(array)
+        var parser = RFC_8259.Parser(consume input, maxDepth: maxDepth)
+        return try parser.parse()
+    }
 
-        /// Decodes a substring to a JSON value.
-        ///
-        /// - Parameters:
-        ///   - string: JSON substring.
-        ///   - maxDepth: Maximum nesting depth (default: 512).
-        /// - Throws: `RFC_8259.Error` if parsing fails.
-        /// - Returns: The parsed JSON value.
-        @inlinable
-        public func callAsFunction(
-            _ string: Substring,
-            maxDepth: Int = 512
-        ) throws(RFC_8259.Error) -> Value {
-            try callAsFunction(Swift.Array(string.utf8), maxDepth: maxDepth)
-        }
+    /// Decodes a string to a JSON value.
+    ///
+    /// - Parameters:
+    ///   - string: JSON string (will be converted to UTF-8).
+    ///   - maxDepth: Maximum nesting depth (default: 512).
+    /// - Throws: `RFC_8259.Error` if parsing fails.
+    /// - Returns: The parsed JSON value.
+    @inlinable
+    public func callAsFunction(
+        _ string: String,
+        maxDepth: Int = 512
+    ) throws(RFC_8259.Error) -> RFC_8259.Value {
+        try callAsFunction(Swift.Array(string.utf8), maxDepth: maxDepth)
+    }
+
+    /// Decodes a substring to a JSON value.
+    ///
+    /// - Parameters:
+    ///   - string: JSON substring.
+    ///   - maxDepth: Maximum nesting depth (default: 512).
+    /// - Throws: `RFC_8259.Error` if parsing fails.
+    /// - Returns: The parsed JSON value.
+    @inlinable
+    public func callAsFunction(
+        _ string: Substring,
+        maxDepth: Int = 512
+    ) throws(RFC_8259.Error) -> RFC_8259.Value {
+        try callAsFunction(Swift.Array(string.utf8), maxDepth: maxDepth)
     }
 }
 
@@ -124,25 +128,5 @@ extension RFC_8259 {
     ) throws(Error) -> Value
     where C.Element == UInt8, C.Index: Sendable {
         try decode(json, maxDepth: maxDepth)
-    }
-}
-
-// MARK: - String Extension
-
-extension String {
-    /// Parses this string as JSON.
-    ///
-    /// ## Usage
-    ///
-    /// ```swift
-    /// let value = try "{\"name\": \"John\"}".parseJSON()
-    /// ```
-    ///
-    /// - Parameter maxDepth: Maximum nesting depth (default: 512).
-    /// - Throws: `RFC_8259.Error` if parsing fails.
-    /// - Returns: The parsed JSON value.
-    @inlinable
-    public func parseJSON(maxDepth: Int = 512) throws(RFC_8259.Error) -> RFC_8259.Value {
-        try RFC_8259.decode(self, maxDepth: maxDepth)
     }
 }
