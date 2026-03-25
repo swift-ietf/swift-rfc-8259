@@ -123,7 +123,7 @@ extension RFC_8259.Encode.Encoder {
     /// each unsafe expression is annotated individually.
     @unsafe
     @usableFromInline
-    @inline(__always)
+    @inline(always)
     func _escapeUTF8<Buffer: Swift.RangeReplaceableCollection>(
         _ utf8: UnsafeBufferPointer<UInt8>,
         escapeSlashes: Bool,
@@ -194,7 +194,7 @@ extension RFC_8259.Encode.Encoder {
     /// Appends bytes from mark to cursor (bulk copy of safe range).
     @unsafe
     @usableFromInline
-    @inline(__always)
+    @inline(always)
     func _appendSafe<Buffer: Swift.RangeReplaceableCollection>(
         from mark: UnsafePointer<UInt8>,
         to cursor: UnsafePointer<UInt8>,
