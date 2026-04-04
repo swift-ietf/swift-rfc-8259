@@ -3,7 +3,7 @@
 ///
 /// Zero-copy JSON lexer (~Copyable)
 
-@_spi(Unsafe) import Array_Primitives
+@_spi(Unsafe) public import Array_Primitives
 import Parser_Primitives
 
 extension RFC_8259 {
