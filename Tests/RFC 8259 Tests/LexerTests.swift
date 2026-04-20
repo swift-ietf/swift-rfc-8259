@@ -12,8 +12,8 @@ struct LexerTests {
 
     // MARK: - Structural Tokens
 
-    @Test("Lex structural tokens")
-    func lexStructural() throws {
+    @Test
+    func `Lex structural tokens`() throws {
         let input = Input.Buffer(Swift.Array("{}[],:".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -28,8 +28,8 @@ struct LexerTests {
 
     // MARK: - Literals
 
-    @Test("Lex null")
-    func lexNull() throws {
+    @Test
+    func `Lex null`() throws {
         let input = Input.Buffer(Swift.Array("null".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -37,8 +37,8 @@ struct LexerTests {
         #expect(try lexer.next() == nil)
     }
 
-    @Test("Lex true")
-    func lexTrue() throws {
+    @Test
+    func `Lex true`() throws {
         let input = Input.Buffer(Swift.Array("true".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -46,8 +46,8 @@ struct LexerTests {
         #expect(try lexer.next() == nil)
     }
 
-    @Test("Lex false")
-    func lexFalse() throws {
+    @Test
+    func `Lex false`() throws {
         let input = Input.Buffer(Swift.Array("false".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -57,8 +57,8 @@ struct LexerTests {
 
     // MARK: - Numbers
 
-    @Test("Lex integer")
-    func lexInteger() throws {
+    @Test
+    func `Lex integer`() throws {
         let input = Input.Buffer(Swift.Array("42".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -70,8 +70,8 @@ struct LexerTests {
         #expect(n.int64 == 42)
     }
 
-    @Test("Lex negative integer")
-    func lexNegativeInteger() throws {
+    @Test
+    func `Lex negative integer`() throws {
         let input = Input.Buffer(Swift.Array("-123".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -83,8 +83,8 @@ struct LexerTests {
         #expect(n.int64 == -123)
     }
 
-    @Test("Lex float")
-    func lexFloat() throws {
+    @Test
+    func `Lex float`() throws {
         let input = Input.Buffer(Swift.Array("3.14".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -96,8 +96,8 @@ struct LexerTests {
         #expect(n.double == 3.14)
     }
 
-    @Test("Lex scientific notation")
-    func lexScientific() throws {
+    @Test
+    func `Lex scientific notation`() throws {
         let input = Input.Buffer(Swift.Array("1.5e10".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -111,8 +111,8 @@ struct LexerTests {
 
     // MARK: - Strings
 
-    @Test("Lex simple string")
-    func lexSimpleString() throws {
+    @Test
+    func `Lex simple string`() throws {
         let input = Input.Buffer(Swift.Array("\"hello\"".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -124,8 +124,8 @@ struct LexerTests {
         #expect(s == "hello")
     }
 
-    @Test("Lex string with escapes")
-    func lexStringEscapes() throws {
+    @Test
+    func `Lex string with escapes`() throws {
         let input = Input.Buffer(Swift.Array("\"hello\\nworld\"".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -137,8 +137,8 @@ struct LexerTests {
         #expect(s == "hello\nworld")
     }
 
-    @Test("Lex string with unicode escape")
-    func lexUnicodeEscape() throws {
+    @Test
+    func `Lex string with unicode escape`() throws {
         let input = Input.Buffer(Swift.Array("\"\\u0041\"".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -152,8 +152,8 @@ struct LexerTests {
 
     // MARK: - Whitespace Handling
 
-    @Test("Skip whitespace between tokens")
-    func skipWhitespace() throws {
+    @Test
+    func `Skip whitespace between tokens`() throws {
         let input = Input.Buffer(Swift.Array("  {  }  ".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -162,8 +162,8 @@ struct LexerTests {
         #expect(try lexer.next() == nil)
     }
 
-    @Test("Handle all whitespace types")
-    func handleAllWhitespace() throws {
+    @Test
+    func `Handle all whitespace types`() throws {
         let input = Input.Buffer(Swift.Array("\t\n\r {\t\n\r }\t\n\r ".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -174,8 +174,8 @@ struct LexerTests {
 
     // MARK: - Position Tracking
 
-    @Test("Track position")
-    func trackPosition() throws {
+    @Test
+    func `Track position`() throws {
         let input = Input.Buffer(Swift.Array("{\n  \"key\": 1\n}".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -188,8 +188,8 @@ struct LexerTests {
 
     // MARK: - Token Sequence
 
-    @Test("Lex complete object")
-    func lexCompleteObject() throws {
+    @Test
+    func `Lex complete object`() throws {
         let input = Input.Buffer(Swift.Array("{\"name\":\"John\",\"age\":30}".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -232,8 +232,8 @@ struct LexerTests {
 
     // MARK: - Error Cases
 
-    @Test("Reject incomplete literal")
-    func rejectIncompleteLiteral() throws {
+    @Test
+    func `Reject incomplete literal`() throws {
         let input = Input.Buffer(Swift.Array("nul".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -242,8 +242,8 @@ struct LexerTests {
         }
     }
 
-    @Test("Reject invalid character")
-    func rejectInvalidCharacter() throws {
+    @Test
+    func `Reject invalid character`() throws {
         let input = Input.Buffer(Swift.Array("@".utf8))
         var lexer = RFC_8259.Lexer(input)
 
@@ -252,8 +252,8 @@ struct LexerTests {
         }
     }
 
-    @Test("Reject non-finite numbers (1e999 → overflow)")
-    func rejectNonFiniteNumbers() throws {
+    @Test
+    func `Reject non-finite numbers (1e999 → overflow)`() throws {
         // 1e999 parses to Double.infinity, which should be rejected
         let input = Input.Buffer(Swift.Array("1e999".utf8))
         var lexer = RFC_8259.Lexer(input)
@@ -263,8 +263,8 @@ struct LexerTests {
         }
     }
 
-    @Test("Reject extremely small exponents (1e-999 → overflow)")
-    func rejectExtremelySmallExponents() throws {
+    @Test
+    func `Reject extremely small exponents (1e-999 → overflow)`() throws {
         // 1e-999 parses to 0.0 which is finite, so this should succeed
         // But -1e999 would be -infinity
         let input = Input.Buffer(Swift.Array("-1e999".utf8))

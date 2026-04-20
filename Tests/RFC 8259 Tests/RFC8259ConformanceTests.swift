@@ -11,64 +11,64 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Error Cases: Numbers
 
-    @Test("Reject leading zeros")
-    func rejectLeadingZeros() throws {
+    @Test
+    func `Reject leading zeros`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("007")
         }
     }
 
-    @Test("Reject leading zeros in negative")
-    func rejectLeadingZerosNegative() throws {
+    @Test
+    func `Reject leading zeros in negative`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("-007")
         }
     }
 
-    @Test("Reject plus sign on positive numbers")
-    func rejectPlusSign() throws {
+    @Test
+    func `Reject plus sign on positive numbers`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("+42")
         }
     }
 
-    @Test("Reject bare decimal point")
-    func rejectBareDecimal() throws {
+    @Test
+    func `Reject bare decimal point`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse(".5")
         }
     }
 
-    @Test("Reject trailing decimal point")
-    func rejectTrailingDecimal() throws {
+    @Test
+    func `Reject trailing decimal point`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("5.")
         }
     }
 
-    @Test("Reject bare exponent")
-    func rejectBareExponent() throws {
+    @Test
+    func `Reject bare exponent`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("e10")
         }
     }
 
-    @Test("Reject NaN")
-    func rejectNaN() throws {
+    @Test
+    func `Reject NaN`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("NaN")
         }
     }
 
-    @Test("Reject Infinity")
-    func rejectInfinity() throws {
+    @Test
+    func `Reject Infinity`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("Infinity")
         }
     }
 
-    @Test("Reject hex numbers")
-    func rejectHex() throws {
+    @Test
+    func `Reject hex numbers`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("0x1F")
         }
@@ -76,50 +76,50 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Error Cases: Strings
 
-    @Test("Reject unterminated string")
-    func rejectUnterminatedString() throws {
+    @Test
+    func `Reject unterminated string`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("\"hello")
         }
     }
 
-    @Test("Reject invalid escape")
-    func rejectInvalidEscape() throws {
+    @Test
+    func `Reject invalid escape`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("\"\\q\"")
         }
     }
 
-    @Test("Reject incomplete unicode escape")
-    func rejectIncompleteUnicode() throws {
+    @Test
+    func `Reject incomplete unicode escape`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("\"\\u00\"")
         }
     }
 
-    @Test("Reject invalid unicode escape")
-    func rejectInvalidUnicode() throws {
+    @Test
+    func `Reject invalid unicode escape`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("\"\\uGGGG\"")
         }
     }
 
-    @Test("Reject unescaped control character")
-    func rejectUnescapedControl() throws {
+    @Test
+    func `Reject unescaped control character`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("\"\u{01}\"")
         }
     }
 
-    @Test("Reject unescaped newline in string")
-    func rejectUnescapedNewline() throws {
+    @Test
+    func `Reject unescaped newline in string`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("\"hello\nworld\"")
         }
     }
 
-    @Test("Reject unescaped tab in string")
-    func rejectUnescapedTab() throws {
+    @Test
+    func `Reject unescaped tab in string`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("\"hello\tworld\"")
         }
@@ -127,71 +127,71 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Error Cases: Structure
 
-    @Test("Reject trailing content")
-    func rejectTrailing() throws {
+    @Test
+    func `Reject trailing content`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("123 456")
         }
     }
 
-    @Test("Reject multiple values")
-    func rejectMultipleValues() throws {
+    @Test
+    func `Reject multiple values`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("{}{}")
         }
     }
 
-    @Test("Reject unclosed array")
-    func rejectUnclosedArray() throws {
+    @Test
+    func `Reject unclosed array`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("[1, 2")
         }
     }
 
-    @Test("Reject unclosed object")
-    func rejectUnclosedObject() throws {
+    @Test
+    func `Reject unclosed object`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("{\"key\": 1")
         }
     }
 
-    @Test("Reject trailing comma in array")
-    func rejectTrailingCommaArray() throws {
+    @Test
+    func `Reject trailing comma in array`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("[1, 2, ]")
         }
     }
 
-    @Test("Reject trailing comma in object")
-    func rejectTrailingCommaObject() throws {
+    @Test
+    func `Reject trailing comma in object`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("{\"key\": 1, }")
         }
     }
 
-    @Test("Reject unquoted object key")
-    func rejectUnquotedKey() throws {
+    @Test
+    func `Reject unquoted object key`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("{key: 1}")
         }
     }
 
-    @Test("Reject single quotes")
-    func rejectSingleQuotes() throws {
+    @Test
+    func `Reject single quotes`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("'hello'")
         }
     }
 
-    @Test("Reject missing colon in object")
-    func rejectMissingColon() throws {
+    @Test
+    func `Reject missing colon in object`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("{\"key\" 1}")
         }
     }
 
-    @Test("Reject missing value in object")
-    func rejectMissingValue() throws {
+    @Test
+    func `Reject missing value in object`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("{\"key\":}")
         }
@@ -199,43 +199,43 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Error Cases: Invalid Tokens
 
-    @Test("Reject undefined")
-    func rejectUndefined() throws {
+    @Test
+    func `Reject undefined`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("undefined")
         }
     }
 
-    @Test("Reject True (capitalized)")
-    func rejectCapitalizedTrue() throws {
+    @Test
+    func `Reject True (capitalized)`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("True")
         }
     }
 
-    @Test("Reject FALSE (all caps)")
-    func rejectAllCapsTrue() throws {
+    @Test
+    func `Reject FALSE (all caps)`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("FALSE")
         }
     }
 
-    @Test("Reject NULL (all caps)")
-    func rejectAllCapsNull() throws {
+    @Test
+    func `Reject NULL (all caps)`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("NULL")
         }
     }
 
-    @Test("Reject empty input")
-    func rejectEmpty() throws {
+    @Test
+    func `Reject empty input`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("")
         }
     }
 
-    @Test("Reject whitespace only")
-    func rejectWhitespaceOnly() throws {
+    @Test
+    func `Reject whitespace only`() throws {
         #expect(throws: RFC_8259.Error.self) {
             try RFC_8259.parse("   ")
         }
@@ -243,8 +243,8 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Depth Limiting
 
-    @Test("Respect depth limit")
-    func respectDepthLimit() throws {
+    @Test
+    func `Respect depth limit`() throws {
         // Nested 10 levels deep
         let json = String(repeating: "[", count: 10) + "1" + String(repeating: "]", count: 10)
 
@@ -260,20 +260,20 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Unicode
 
-    @Test("Parse UTF-8 string")
-    func parseUtf8() throws {
+    @Test
+    func `Parse UTF-8 string`() throws {
         let value = try RFC_8259.parse("\"日本語\"")
         #expect(value.string == "日本語")
     }
 
-    @Test("Parse emoji")
-    func parseEmoji() throws {
+    @Test
+    func `Parse emoji`() throws {
         let value = try RFC_8259.parse("\"Hello 👋\"")
         #expect(value.string == "Hello 👋")
     }
 
-    @Test("Parse surrogate pair via unicode escapes")
-    func parseSurrogatePair() throws {
+    @Test
+    func `Parse surrogate pair via unicode escapes`() throws {
         // U+1F600 (😀) = \uD83D\uDE00 in surrogate pairs
         let value = try RFC_8259.parse("\"\\uD83D\\uDE00\"")
         #expect(value.string == "😀")
@@ -281,16 +281,16 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Object Key Handling
 
-    @Test("Object preserves insertion order")
-    func objectPreservesOrder() throws {
+    @Test
+    func `Object preserves insertion order`() throws {
         let json = "{\"z\":1,\"a\":2,\"m\":3}"
         let value = try RFC_8259.parse(json)
         let keys = value.object?.map(\.key)
         #expect(keys == ["z", "a", "m"])
     }
 
-    @Test("Object handles duplicate keys (last wins)")
-    func objectDuplicateKeys() throws {
+    @Test
+    func `Object handles duplicate keys (last wins)`() throws {
         let json = "{\"key\":1,\"key\":2}"
         let value = try RFC_8259.parse(json)
         // Behavior: both are stored; first match wins on lookup
@@ -299,14 +299,14 @@ struct RFC8259ConformanceTests {
 
     // MARK: - Large Numbers
 
-    @Test("Parse large integer")
-    func parseLargeInteger() throws {
+    @Test
+    func `Parse large integer`() throws {
         let value = try RFC_8259.parse("9223372036854775807")
         #expect(value.number?.int64 == Int64.max)
     }
 
-    @Test("Parse very large number as double")
-    func parseVeryLargeNumber() throws {
+    @Test
+    func `Parse very large number as double`() throws {
         let value = try RFC_8259.parse("1e308")
         #expect(value.number?.double != nil)
     }

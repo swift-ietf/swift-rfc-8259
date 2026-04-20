@@ -11,141 +11,141 @@ struct ParserTests {
 
     // MARK: - Simple Values
 
-    @Test("Parse null")
-    func parseNull() throws {
+    @Test
+    func `Parse null`() throws {
         let value = try RFC_8259.parse("null")
         #expect(value.isNull)
     }
 
-    @Test("Parse true")
-    func parseTrue() throws {
+    @Test
+    func `Parse true`() throws {
         let value = try RFC_8259.parse("true")
         #expect(value.bool == true)
     }
 
-    @Test("Parse false")
-    func parseFalse() throws {
+    @Test
+    func `Parse false`() throws {
         let value = try RFC_8259.parse("false")
         #expect(value.bool == false)
     }
 
     // MARK: - Numbers
 
-    @Test("Parse integer")
-    func parseInteger() throws {
+    @Test
+    func `Parse integer`() throws {
         let value = try RFC_8259.parse("42")
         #expect(value.number?.int64 == 42)
     }
 
-    @Test("Parse negative integer")
-    func parseNegativeInteger() throws {
+    @Test
+    func `Parse negative integer`() throws {
         let value = try RFC_8259.parse("-123")
         #expect(value.number?.int64 == -123)
     }
 
-    @Test("Parse floating point")
-    func parseFloat() throws {
+    @Test
+    func `Parse floating point`() throws {
         let value = try RFC_8259.parse("3.14")
         #expect(value.number?.double == 3.14)
     }
 
-    @Test("Parse scientific notation")
-    func parseScientific() throws {
+    @Test
+    func `Parse scientific notation`() throws {
         let value = try RFC_8259.parse("1.5e10")
         #expect(value.number?.double == 1.5e10)
     }
 
-    @Test("Parse zero")
-    func parseZero() throws {
+    @Test
+    func `Parse zero`() throws {
         let value = try RFC_8259.parse("0")
         #expect(value.number?.int64 == 0)
     }
 
-    @Test("Parse negative zero")
-    func parseNegativeZero() throws {
+    @Test
+    func `Parse negative zero`() throws {
         let value = try RFC_8259.parse("-0")
         #expect(value.number?.double == 0)
     }
 
-    @Test("Parse exponent with plus sign")
-    func parseExponentPlus() throws {
+    @Test
+    func `Parse exponent with plus sign`() throws {
         let value = try RFC_8259.parse("1e+10")
         #expect(value.number?.double == 1e10)
     }
 
-    @Test("Parse exponent with minus sign")
-    func parseExponentMinus() throws {
+    @Test
+    func `Parse exponent with minus sign`() throws {
         let value = try RFC_8259.parse("1e-10")
         #expect(value.number?.double == 1e-10)
     }
 
-    @Test("Parse uppercase exponent")
-    func parseUppercaseExponent() throws {
+    @Test
+    func `Parse uppercase exponent`() throws {
         let value = try RFC_8259.parse("1E10")
         #expect(value.number?.double == 1e10)
     }
 
     // MARK: - Strings
 
-    @Test("Parse simple string")
-    func parseString() throws {
+    @Test
+    func `Parse simple string`() throws {
         let value = try RFC_8259.parse("\"hello\"")
         #expect(value.string == "hello")
     }
 
-    @Test("Parse empty string")
-    func parseEmptyString() throws {
+    @Test
+    func `Parse empty string`() throws {
         let value = try RFC_8259.parse("\"\"")
         #expect(value.string == "")
     }
 
-    @Test("Parse string with escapes")
-    func parseStringEscapes() throws {
+    @Test
+    func `Parse string with escapes`() throws {
         let value = try RFC_8259.parse("\"hello\\nworld\"")
         #expect(value.string == "hello\nworld")
     }
 
-    @Test("Parse all escape sequences")
-    func parseAllEscapes() throws {
+    @Test
+    func `Parse all escape sequences`() throws {
         let value = try RFC_8259.parse("\"\\\"\\\\\\b\\f\\n\\r\\t\"")
         #expect(value.string == "\"\\\u{08}\u{0C}\n\r\t")
     }
 
-    @Test("Parse unicode escape")
-    func parseUnicodeEscape() throws {
+    @Test
+    func `Parse unicode escape`() throws {
         let value = try RFC_8259.parse("\"\\u0041\"")
         #expect(value.string == "A")
     }
 
-    @Test("Parse unicode escape for emoji base")
-    func parseUnicodeEscapeEmoji() throws {
+    @Test
+    func `Parse unicode escape for emoji base`() throws {
         let value = try RFC_8259.parse("\"\\u263A\"")
         #expect(value.string == "\u{263A}")
     }
 
-    @Test("Parse solidus escape")
-    func parseSolidusEscape() throws {
+    @Test
+    func `Parse solidus escape`() throws {
         let value = try RFC_8259.parse("\"\\/\"")
         #expect(value.string == "/")
     }
 
     // MARK: - Arrays
 
-    @Test("Parse empty array")
-    func parseEmptyArray() throws {
+    @Test
+    func `Parse empty array`() throws {
         let value = try RFC_8259.parse("[]")
         #expect(value.array?.count == 0)
     }
 
-    @Test("Parse array with single value")
-    func parseArraySingleValue() throws {
+    @Test
+    func `Parse array with single value`() throws {
         let value = try RFC_8259.parse("[42]")
         #expect(value.array?.count == 1)
         #expect(value[0]?.number?.int64 == 42)
     }
 
-    @Test("Parse array with values")
-    func parseArray() throws {
+    @Test
+    func `Parse array with values`() throws {
         let value = try RFC_8259.parse("[1, 2, 3]")
         let array = value.array
         #expect(array?.count == 3)
@@ -154,8 +154,8 @@ struct ParserTests {
         #expect(array?[2].number?.int64 == 3)
     }
 
-    @Test("Parse array with mixed types")
-    func parseArrayMixed() throws {
+    @Test
+    func `Parse array with mixed types`() throws {
         let value = try RFC_8259.parse("[1, \"two\", true, null]")
         #expect(value[0]?.number?.int64 == 1)
         #expect(value[1]?.string == "two")
@@ -165,20 +165,20 @@ struct ParserTests {
 
     // MARK: - Objects
 
-    @Test("Parse empty object")
-    func parseEmptyObject() throws {
+    @Test
+    func `Parse empty object`() throws {
         let value = try RFC_8259.parse("{}")
         #expect(value.object?.count == 0)
     }
 
-    @Test("Parse object with single member")
-    func parseObjectSingleMember() throws {
+    @Test
+    func `Parse object with single member`() throws {
         let value = try RFC_8259.parse("{\"key\": \"value\"}")
         #expect(value["key"]?.string == "value")
     }
 
-    @Test("Parse object with members")
-    func parseObject() throws {
+    @Test
+    func `Parse object with members`() throws {
         let value = try RFC_8259.parse("{\"name\": \"John\", \"age\": 30}")
         #expect(value["name"]?.string == "John")
         #expect(value["age"]?.number?.int64 == 30)
@@ -186,8 +186,8 @@ struct ParserTests {
 
     // MARK: - Nested Structures
 
-    @Test("Parse nested structure")
-    func parseNested() throws {
+    @Test
+    func `Parse nested structure`() throws {
         let json = """
         {
             "users": [
@@ -203,28 +203,28 @@ struct ParserTests {
         #expect(value["users"]?[1]?["active"]?.bool == false)
     }
 
-    @Test("Parse deeply nested arrays")
-    func parseDeeplyNestedArrays() throws {
+    @Test
+    func `Parse deeply nested arrays`() throws {
         let value = try RFC_8259.parse("[[[1]]]")
         #expect(value[0]?[0]?[0]?.number?.int64 == 1)
     }
 
-    @Test("Parse deeply nested objects")
-    func parseDeeplyNestedObjects() throws {
+    @Test
+    func `Parse deeply nested objects`() throws {
         let value = try RFC_8259.parse("{\"a\":{\"b\":{\"c\":1}}}")
         #expect(value["a"]?["b"]?["c"]?.number?.int64 == 1)
     }
 
     // MARK: - Whitespace
 
-    @Test("Handle whitespace")
-    func handleWhitespace() throws {
+    @Test
+    func `Handle whitespace`() throws {
         let value = try RFC_8259.parse("  { \"key\" : \"value\" }  ")
         #expect(value["key"]?.string == "value")
     }
 
-    @Test("Handle all whitespace types")
-    func handleAllWhitespace() throws {
+    @Test
+    func `Handle all whitespace types`() throws {
         let json = "[\t\n\r 1\t\n\r ,\t\n\r 2\t\n\r ]"
         let value = try RFC_8259.parse(json)
         #expect(value[0]?.number?.int64 == 1)

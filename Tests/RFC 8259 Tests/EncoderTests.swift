@@ -11,22 +11,22 @@ struct EncoderTests {
 
     // MARK: - Simple Values
 
-    @Test("Encode null")
-    func encodeNull() {
+    @Test
+    func `Encode null`() {
         let value: RFC_8259.Value = nil
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "null")
     }
 
-    @Test("Encode true")
-    func encodeTrue() {
+    @Test
+    func `Encode true`() {
         let value: RFC_8259.Value = true
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "true")
     }
 
-    @Test("Encode false")
-    func encodeFalse() {
+    @Test
+    func `Encode false`() {
         let value: RFC_8259.Value = false
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "false")
@@ -34,29 +34,29 @@ struct EncoderTests {
 
     // MARK: - Numbers
 
-    @Test("Encode integer")
-    func encodeInteger() throws {
+    @Test
+    func `Encode integer`() throws {
         let value = try RFC_8259.parse("42")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "42")
     }
 
-    @Test("Encode negative")
-    func encodeNegative() throws {
+    @Test
+    func `Encode negative`() throws {
         let value = try RFC_8259.parse("-123")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "-123")
     }
 
-    @Test("Encode floating point")
-    func encodeFloat() throws {
+    @Test
+    func `Encode floating point`() throws {
         let value = try RFC_8259.parse("3.14")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "3.14")
     }
 
-    @Test("Encode scientific notation preserves original")
-    func encodeScientificPreserves() throws {
+    @Test
+    func `Encode scientific notation preserves original`() throws {
         let value = try RFC_8259.parse("1.5e10")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "1.5e10")
@@ -64,36 +64,36 @@ struct EncoderTests {
 
     // MARK: - Strings
 
-    @Test("Encode simple string")
-    func encodeSimple() throws {
+    @Test
+    func `Encode simple string`() throws {
         let value: RFC_8259.Value = "hello"
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "\"hello\"")
     }
 
-    @Test("Encode empty string")
-    func encodeEmptyString() {
+    @Test
+    func `Encode empty string`() {
         let value: RFC_8259.Value = ""
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "\"\"")
     }
 
-    @Test("Encode string with escapes")
-    func encodeStringEscapes() {
+    @Test
+    func `Encode string with escapes`() {
         let value: RFC_8259.Value = .string("hello\nworld")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "\"hello\\nworld\"")
     }
 
-    @Test("Encode string with all escape sequences")
-    func encodeAllEscapes() {
+    @Test
+    func `Encode string with all escape sequences`() {
         let value: RFC_8259.Value = .string("\"\\\u{08}\u{0C}\n\r\t")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "\"\\\"\\\\\\b\\f\\n\\r\\t\"")
     }
 
-    @Test("Encode string with control character")
-    func encodeControlCharacter() {
+    @Test
+    func `Encode string with control character`() {
         let value: RFC_8259.Value = .string("\u{01}")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "\"\\u0001\"")
@@ -101,15 +101,15 @@ struct EncoderTests {
 
     // MARK: - Arrays
 
-    @Test("Encode empty array")
-    func encodeEmptyArray() {
+    @Test
+    func `Encode empty array`() {
         let value: RFC_8259.Value = []
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "[]")
     }
 
-    @Test("Encode array with values")
-    func encodeArray() throws {
+    @Test
+    func `Encode array with values`() throws {
         let value = try RFC_8259.parse("[1, 2, 3]")
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "[1,2,3]")
@@ -117,15 +117,15 @@ struct EncoderTests {
 
     // MARK: - Objects
 
-    @Test("Encode empty object")
-    func encodeEmptyObject() {
+    @Test
+    func `Encode empty object`() {
         let value: RFC_8259.Value = [:]
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "{}")
     }
 
-    @Test("Encode object")
-    func encodeObject() throws {
+    @Test
+    func `Encode object`() throws {
         let value: RFC_8259.Value = ["name": "John"]
         let bytes = value.encode()
         #expect(String(decoding: bytes, as: UTF8.self) == "{\"name\":\"John\"}")
@@ -133,24 +133,24 @@ struct EncoderTests {
 
     // MARK: - Options
 
-    @Test("Encode with sorted keys")
-    func encodeSortedKeys() {
+    @Test
+    func `Encode with sorted keys`() {
         let value: RFC_8259.Value = ["b": 2, "a": 1]
         let options = RFC_8259.Encode.Options(sortKeys: true)
         let bytes = value.encode(options: options)
         #expect(String(decoding: bytes, as: UTF8.self) == "{\"a\":1,\"b\":2}")
     }
 
-    @Test("Encode with escaped slashes")
-    func encodeEscapedSlashes() {
+    @Test
+    func `Encode with escaped slashes`() {
         let value: RFC_8259.Value = "http://example.com"
         let options = RFC_8259.Encode.Options(escapeSlashes: true)
         let bytes = value.encode(options: options)
         #expect(String(decoding: bytes, as: UTF8.self) == "\"http:\\/\\/example.com\"")
     }
 
-    @Test("Encode pretty printed array")
-    func encodePrettyArray() throws {
+    @Test
+    func `Encode pretty printed array`() throws {
         let value = try RFC_8259.parse("[1, 2]")
         let options = RFC_8259.Encode.Options(prettyPrint: true)
         let bytes = value.encode(options: options)
@@ -163,8 +163,8 @@ struct EncoderTests {
         #expect(String(decoding: bytes, as: UTF8.self) == expected)
     }
 
-    @Test("Encode pretty printed object")
-    func encodePrettyObject() {
+    @Test
+    func `Encode pretty printed object`() {
         let value: RFC_8259.Value = ["key": "value"]
         let options = RFC_8259.Encode.Options(prettyPrint: true)
         let bytes = value.encode(options: options)
@@ -178,15 +178,15 @@ struct EncoderTests {
 
     // MARK: - Binary.Serializable
 
-    @Test("Binary.Serializable conformance")
-    func binarySerializable() {
+    @Test
+    func `Binary.Serializable conformance`() {
         let value: RFC_8259.Value = ["name": "test"]
         let bytes: [UInt8] = value.bytes
         #expect(String(decoding: bytes, as: UTF8.self) == "{\"name\":\"test\"}")
     }
 
-    @Test("Binary.Serializable serialize into buffer")
-    func binarySerializeInto() {
+    @Test
+    func `Binary.Serializable serialize into buffer`() {
         var buffer: [UInt8] = []
         let value: RFC_8259.Value = 42
         RFC_8259.Value.serialize(value, into: &buffer)
@@ -195,8 +195,8 @@ struct EncoderTests {
 
     // MARK: - UTF-8 Key Sorting
 
-    @Test("Sort keys by UTF-8 bytes, not Unicode collation")
-    func sortKeysByUTF8Bytes() {
+    @Test
+    func `Sort keys by UTF-8 bytes, not Unicode collation`() {
         // "é" is 0xC3 0xA9 in UTF-8, which comes after "e" (0x65) and "f" (0x66)
         // In Unicode collation, "é" might sort near "e", but in UTF-8 byte order
         // it sorts after ASCII characters
@@ -209,8 +209,8 @@ struct EncoderTests {
         #expect(result == "{\"e\":2,\"f\":3,\"é\":1}")
     }
 
-    @Test("Sort keys with emoji by UTF-8 bytes")
-    func sortKeysWithEmoji() {
+    @Test
+    func `Sort keys with emoji by UTF-8 bytes`() {
         // Emoji have high UTF-8 byte values (4-byte sequences starting with 0xF0)
         let value: RFC_8259.Value = ["a": 1, "😀": 2, "z": 3]
         let options = RFC_8259.Encode.Options(sortKeys: true)
@@ -223,8 +223,8 @@ struct EncoderTests {
 
     // MARK: - Unicode String Encoding
 
-    @Test("Encode string with multi-byte UTF-8")
-    func encodeMultiByteUTF8() {
+    @Test
+    func `Encode string with multi-byte UTF-8`() {
         // Test that encodeScalarUTF8 handles all UTF-8 byte lengths correctly
         let value: RFC_8259.Value = "aéñ中😀"
         let bytes = value.encode()
