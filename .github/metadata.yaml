@@ -1,0 +1,9 @@
+# .github/metadata.yaml
+# Triaged by AI-assisted bulk pass (2026-04-29).
+description: "Swift implementation of RFC 8259: The JavaScript Object Notation (JSON) Data Interchange Format."
+topics:
+  - standards
+  - rfc
+  - rfc-8259
+  - json
+homepage: "https://swift-institute.org"
