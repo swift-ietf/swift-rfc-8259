@@ -4,6 +4,8 @@
 //             with round-trip correctness by construction
 //
 // Toolchain: (pending execution)
+// Status: SUPERSEDED 2026-04-30 — Unicode-escape syntax in string literal no longer accepted; experiment requires re-authoring string content
+// Revalidated: Swift 6.3.1 (2026-04-30) — STILL PRESENT (deep API drift; SUPERSEDED per [META-007])
 // Platform: (pending execution)
 //
 // Result: (PENDING)
