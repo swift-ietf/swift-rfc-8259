@@ -78,12 +78,12 @@ extension RFC_8259.Lexer where Input: ~Copyable {
             offset: _position.offset.successor.saturating(),
             location: isNewline
                 ? Text.Location(
-                    line: Text.Line.Number(_position.location.line.rawValue &+ 1),
+                    line: Text.Line.Number(_position.location.line.underlying &+ 1),
                     column: .one
                   )
                 : Text.Location(
                     line: _position.location.line,
-                    column: Text.Line.Column(Cardinal(_position.location.column.rawValue.rawValue &+ 1))
+                    column: Text.Line.Column(Cardinal(_position.location.column.underlying.rawValue &+ 1))
                   )
         )
         return byte
