@@ -3,6 +3,7 @@
 ///
 /// JSON parser (~Copyable)
 
+public import Input_Primitives
 import Parser_Primitives
 
 extension RFC_8259 {
@@ -24,7 +25,7 @@ extension RFC_8259 {
     /// var parser = RFC_8259.Parser(consume input)
     /// let value = try parser.parse()
     /// ```
-    public struct Parser<Input: Parser_Primitives.Parser.Input.`Protocol` & ~Copyable>: ~Copyable
+    public struct Parser<Input: Parser_Primitives.Parser.Input.`Protocol` & Input_Primitives.Input.Access.Random & ~Copyable>: ~Copyable
     where Input.Element == UInt8 {
         /// The underlying lexer.
         @usableFromInline

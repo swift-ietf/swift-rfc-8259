@@ -4,6 +4,8 @@
 /// Zero-copy JSON lexer (~Copyable)
 
 @_spi(Unsafe) public import Array_Primitives
+public import Input_Primitives
+import Index_Primitives
 import Parser_Primitives
 
 extension RFC_8259 {
@@ -21,7 +23,7 @@ extension RFC_8259 {
     ///     print(token)
     /// }
     /// ```
-    public struct Lexer<Input: Parser_Primitives.Parser.Input.`Protocol` & ~Copyable>: ~Copyable
+    public struct Lexer<Input: Parser_Primitives.Parser.Input.`Protocol` & Input_Primitives.Input.Access.Random & ~Copyable>: ~Copyable
     where Input.Element == UInt8 {
         /// The input being lexed.
         @usableFromInline
@@ -30,6 +32,14 @@ extension RFC_8259 {
         /// Current position for error reporting.
         @usableFromInline
         internal var _position: RFC_8259.Position
+
+        /// Reusable scratch buffer for `lexString`'s byte accumulation.
+        ///
+        /// One owned per lexer; `removeAll(keepingCapacity: true)` between
+        /// strings amortises the per-string allocation across the whole
+        /// parse. Cleared every time `lexString` runs.
+        @usableFromInline
+        internal var _stringScratch: [UInt8]
 
         /// Creates a lexer for the given input.
         ///
@@ -41,6 +51,9 @@ extension RFC_8259 {
                 offset: .zero,
                 location: Text.Location(line: 1, column: .one)
             )
+            var scratch: [UInt8] = []
+            scratch.reserveCapacity(64)
+            self._stringScratch = scratch
         }
     }
 }
@@ -58,14 +71,15 @@ extension RFC_8259.Lexer where Input: ~Copyable {
 
 extension RFC_8259.Lexer where Input: ~Copyable {
     /// Peeks at the next byte without consuming it.
+    ///
+    /// Uses the random-access subscript so the cursor's position is read
+    /// without mutating it — saving two typed-position stores per byte
+    /// compared to a checkpoint/advance/restore round-trip.
     @inlinable
     internal var peek: UInt8? {
         mutating get {
             guard !input.isEmpty else { return nil }
-            let cp = input.checkpoint
-            let byte = try! input.advance()
-            input.setPosition(to: cp)
-            return byte
+            return input[offset: Index<UInt8>.Offset(0)]
         }
     }
 
@@ -167,9 +181,16 @@ extension RFC_8259.Lexer where Input: ~Copyable {
 
 extension RFC_8259.Lexer where Input: ~Copyable {
     /// Skips whitespace bytes.
+    ///
+    /// Pretty-printed JSON is typically 30–40% whitespace; reading the next
+    /// byte via the random-access subscript (instead of the
+    /// checkpoint/restore round-trip the original `peek` used) cuts the
+    /// per-byte cost in the hot path.
     @inlinable
     internal mutating func skipWhitespace() {
-        while let byte = peek, RFC_8259.isWhitespace(byte) {
+        while !input.isEmpty {
+            let byte = input[offset: Index<UInt8>.Offset(0)]
+            guard RFC_8259.isWhitespace(byte) else { return }
             advance()
         }
     }
@@ -219,6 +240,15 @@ extension RFC_8259.Lexer where Input: ~Copyable {
 
 extension RFC_8259.Lexer where Input: ~Copyable {
     /// Lexes a JSON string.
+    ///
+    /// Uses the reusable `_stringScratch` buffer (cleared with
+    /// `removeAll(keepingCapacity: true)` at entry) so that the amortised
+    /// per-string allocation cost collapses to the scratch's high-water
+    /// mark instead of one fresh allocation per JSON string. Tracks an
+    /// `isASCII` flag during scanning; on the ASCII-only path the final
+    /// `String` is built via `String(unsafeUninitializedCapacity:
+    /// initializingUTF8With:)` to skip the `_fromUTF8Repairing` validation
+    /// pass. Non-ASCII bytes fall back to the validating constructor.
     @inlinable
     internal mutating func lexString() throws(RFC_8259.Error) -> RFC_8259.Token {
         let startPos = _position
@@ -226,24 +256,42 @@ extension RFC_8259.Lexer where Input: ~Copyable {
         // Consume opening quote
         advance() // Skip "
 
-        var result: [UInt8] = []
+        _stringScratch.removeAll(keepingCapacity: true)
+        var isASCII = true
 
         while let byte = peek {
             switch byte {
             case .ascii.quotationMark:      // " - closing quote
                 advance()
-                return .string(String(decoding: result, as: UTF8.self))
+                if isASCII {
+                    let count = _stringScratch.count
+                    let result = _stringScratch.withUnsafeBufferPointer { src -> String in
+                        String(unsafeUninitializedCapacity: count) { dst in
+                            if count > 0 {
+                                dst.baseAddress!.update(from: src.baseAddress!, count: count)
+                            }
+                            return count
+                        }
+                    }
+                    return .string(result)
+                }
+                return .string(String(decoding: _stringScratch, as: UTF8.self))
 
             case .ascii.reverseSlant:       // \ - escape sequence
                 advance()
-                try result.append(contentsOf: lexEscapeSequence())
+                let escapeBytes = try lexEscapeSequence()
+                for b in escapeBytes {
+                    if b > 0x7F { isASCII = false }
+                    _stringScratch.append(b)
+                }
 
             case 0x00...0x1F:               // Control characters (C0 range)
                 throw .invalidString(at: _position, reason: .controlCharacter(byte))
 
             default:
-                // Regular character - validate UTF-8
-                result.append(byte)
+                // Regular character
+                if byte > 0x7F { isASCII = false }
+                _stringScratch.append(byte)
                 advance()
             }
         }
@@ -423,16 +471,19 @@ extension RFC_8259.Lexer where Input: ~Copyable {
             }
         }
 
-        // Extract bytes for Original and String conversion
-        let byteArray: [UInt8] = {
-            let span = bytes.span
-            var arr: [UInt8] = []
-            arr.reserveCapacity(span.count)
+        // Build `RFC_8259.Number.Original` and the parse-ready String
+        // from `Array.Small<24>`'s span in one pass each — the previous
+        // implementation copied the span into a `[UInt8]` first and then
+        // walked the array twice. `Number.Original.init` accepts any
+        // `Collection<UInt8>`, and the `[UInt8]` materialisation is only
+        // needed once for `String(decoding:)`.
+        let span = bytes.span
+        let byteArray: [UInt8] = .init(unsafeUninitializedCapacity: span.count) { dst, initialized in
             for i in 0..<span.count {
-                arr.append(span[i])
+                dst[i] = span[i]
             }
-            return arr
-        }()
+            initialized = span.count
+        }
         let original = RFC_8259.Number.Original(byteArray)
         let numStr = String(decoding: byteArray, as: UTF8.self)
 
