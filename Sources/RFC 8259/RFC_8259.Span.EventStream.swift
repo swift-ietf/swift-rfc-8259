@@ -163,6 +163,28 @@ extension RFC_8259.Span.EventStream {
     public mutating func position() -> RFC_8259.Position {
         lexer.materializedPosition()
     }
+
+    /// Peeks at the next non-whitespace byte without consuming a token.
+    ///
+    /// Used by container-decoders that need to detect empty-container
+    /// cases (`[]` / `{}`) before delegating to a child decoder's
+    /// `deserialize(events:)`. The child's `next()` will see the same
+    /// byte the peek returned (and will skip the same whitespace again
+    /// as a no-op).
+    ///
+    /// Does NOT clear `isUnforkedAtPositionZero` — peeking is
+    /// idempotent and the short-circuit semantics are preserved:
+    /// from `Span.Parser`'s perspective, an unconsumed whitespace skip
+    /// followed by a `parse()` produces the same result as `parse()`
+    /// from position 0.
+    ///
+    /// Returns `nil` at end of input.
+    @inlinable
+    @_lifetime(self: copy self)
+    public mutating func peekStructural() -> UInt8? {
+        skipWhitespace()
+        return lexer.peek
+    }
 }
 
 // MARK: - Entry: next()
