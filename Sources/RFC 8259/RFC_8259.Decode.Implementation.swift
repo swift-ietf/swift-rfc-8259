@@ -34,7 +34,7 @@ extension RFC_8259.Decode {
     /// Wholesale JSON parser.
     ///
     /// `~Copyable & ~Escapable` per the cursor it owns
-    /// (`RFC_8259.Span.Lexer`). Drives the lexer + value-tree
+    /// (`Lexer_Primitives.Lexer.Scanner`). Drives the lexer + value-tree
     /// construction in one pass; reuses the public `RFC_8259.Value`,
     /// `RFC_8259.Object`, `RFC_8259.Array`, `RFC_8259.Number`, and
     /// `RFC_8259.Token` types verbatim.
@@ -45,7 +45,7 @@ extension RFC_8259.Decode {
     @usableFromInline
     internal struct Implementation: ~Copyable, ~Escapable {
         @usableFromInline
-        internal var lexer: RFC_8259.Span.Lexer
+        internal var scanner: Lexer_Primitives.Lexer.Scanner
 
         /// Current nesting depth.
         @usableFromInline
@@ -66,7 +66,7 @@ extension RFC_8259.Decode {
         @inlinable
         @_lifetime(borrow bytes)
         internal init(_ bytes: borrowing Swift.Span<UInt8>, maxDepth: Int) {
-            self.lexer = RFC_8259.Span.Lexer(bytes)
+            self.scanner = Lexer_Primitives.Lexer.Scanner(bytes)
             self.depth = 0
             self.maxDepth = maxDepth
             var scratch: [UInt8] = []
@@ -98,7 +98,7 @@ extension RFC_8259.Decode.Implementation {
 
         // Ensure no trailing content (except whitespace).
         skipWhitespace()
-        if !lexer.scanner.isAtEnd {
+        if !scanner.isAtEnd {
             throw .trailingContent(at: currentPosition())
         }
 
@@ -109,7 +109,7 @@ extension RFC_8259.Decode.Implementation {
 // MARK: - Current-position helper
 
 extension RFC_8259.Decode.Implementation {
-    /// Builds `RFC_8259.Position` from the lexer's current cursor.
+    /// Builds `RFC_8259.Position` from the scanner's current cursor.
     /// Line:column is computed by source scan via
     /// ``Lexer/Scanner/location(at:)`` — O(N) at the throw site,
     /// zero cost on the hot path. JSON tokens cannot contain raw
@@ -117,8 +117,8 @@ extension RFC_8259.Decode.Implementation {
     /// updates in `skipWhitespace`.
     @inlinable
     internal func currentPosition() -> RFC_8259.Position {
-        let pos = lexer.scanner.position
-        return RFC_8259.Position(offset: pos, location: lexer.scanner.location(at:pos))
+        let pos = scanner.position
+        return RFC_8259.Position(offset: pos, location: scanner.location(at:pos))
     }
 
     /// Builds `RFC_8259.Position` from a previously captured cursor.
@@ -127,7 +127,7 @@ extension RFC_8259.Decode.Implementation {
     /// no tracker arithmetic per token.
     @inlinable
     internal func position(at cursor: Text.Position) -> RFC_8259.Position {
-        RFC_8259.Position(offset: cursor, location: lexer.scanner.location(at:cursor))
+        RFC_8259.Position(offset: cursor, location: scanner.location(at:cursor))
     }
 }
 
@@ -143,17 +143,17 @@ extension RFC_8259.Decode.Implementation {
     internal mutating func parseValue() throws(RFC_8259.Error) -> RFC_8259.Value {
         skipWhitespace()
 
-        guard let byte = lexer.scanner.peek() else {
+        guard let byte = scanner.peek() else {
             throw .unexpectedEndOfInput(at: currentPosition(), expected: .value)
         }
 
         switch byte {
         case UInt8.ascii.leftBrace:              // {
-            lexer.scanner.advance()
+            scanner.advance()
             return try parseObject()
 
         case UInt8.ascii.leftBracket:            // [
-            lexer.scanner.advance()
+            scanner.advance()
             return try parseArray()
 
         case UInt8.ascii.quotationMark:          // "
@@ -203,8 +203,8 @@ extension RFC_8259.Decode.Implementation {
 
         skipWhitespace()
         // Empty array: `[ ]`.
-        if lexer.scanner.peek() == UInt8.ascii.rightBracket {
-            lexer.scanner.advance()
+        if scanner.peek() == UInt8.ascii.rightBracket {
+            scanner.advance()
             return .array(RFC_8259.Array(elements))
         }
 
@@ -214,15 +214,15 @@ extension RFC_8259.Decode.Implementation {
         // Subsequent values.
         while true {
             skipWhitespace()
-            guard let byte = lexer.scanner.peek() else {
+            guard let byte = scanner.peek() else {
                 throw .unexpectedEndOfInput(at: currentPosition(), expected: .arrayEnd)
             }
             switch byte {
             case UInt8.ascii.rightBracket:
-                lexer.scanner.advance()
+                scanner.advance()
                 return .array(RFC_8259.Array(elements))
             case UInt8.ascii.comma:
-                lexer.scanner.advance()
+                scanner.advance()
                 elements.append(try parseValue())
             default:
                 throw .unexpectedToken(
@@ -251,8 +251,8 @@ extension RFC_8259.Decode.Implementation {
 
         skipWhitespace()
         // Empty object: `{ }`.
-        if lexer.scanner.peek() == UInt8.ascii.rightBrace {
-            lexer.scanner.advance()
+        if scanner.peek() == UInt8.ascii.rightBrace {
+            scanner.advance()
             return .object(RFC_8259.Object(members))
         }
 
@@ -262,15 +262,15 @@ extension RFC_8259.Decode.Implementation {
         // Subsequent members.
         while true {
             skipWhitespace()
-            guard let byte = lexer.scanner.peek() else {
+            guard let byte = scanner.peek() else {
                 throw .unexpectedEndOfInput(at: currentPosition(), expected: .objectEnd)
             }
             switch byte {
             case UInt8.ascii.rightBrace:
-                lexer.scanner.advance()
+                scanner.advance()
                 return .object(RFC_8259.Object(members))
             case UInt8.ascii.comma:
-                lexer.scanner.advance()
+                scanner.advance()
                 members.append(try parseMember())
             default:
                 throw .unexpectedToken(
@@ -287,7 +287,7 @@ extension RFC_8259.Decode.Implementation {
     @_lifetime(self: copy self)
     internal mutating func parseMember() throws(RFC_8259.Error) -> (key: String, value: RFC_8259.Value) {
         skipWhitespace()
-        guard let firstByte = lexer.scanner.peek() else {
+        guard let firstByte = scanner.peek() else {
             throw .unexpectedEndOfInput(at: currentPosition(), expected: .objectKey)
         }
         guard firstByte == UInt8.ascii.quotationMark else {
@@ -301,7 +301,7 @@ extension RFC_8259.Decode.Implementation {
 
         // Expect colon.
         skipWhitespace()
-        guard let colonByte = lexer.scanner.peek() else {
+        guard let colonByte = scanner.peek() else {
             throw .unexpectedEndOfInput(at: currentPosition(), expected: .colon)
         }
         guard colonByte == UInt8.ascii.colon else {
@@ -311,7 +311,7 @@ extension RFC_8259.Decode.Implementation {
                 expected: .colon
             )
         }
-        lexer.scanner.advance()
+        scanner.advance()
 
         // Parse value.
         let value = try parseValue()
@@ -341,7 +341,7 @@ extension RFC_8259.Decode.Implementation {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func skipWhitespace() {
-        while let byte = lexer.scanner.peek() {
+        while let byte = scanner.peek() {
             // Inline the whitespace check: space (0x20), tab (0x09),
             // LF (0x0A), CR (0x0D). RFC 8259 §2.
             // Single-arm switch: with no tracker maintained, CR and LF
@@ -349,7 +349,7 @@ extension RFC_8259.Decode.Implementation {
             // individual whitespace bytes, identical to space-tab.
             switch byte {
             case 0x20, 0x09, 0x0A, 0x0D:
-                lexer.scanner.advance()
+                scanner.advance()
             default:
                 return
             }
@@ -372,9 +372,9 @@ extension RFC_8259.Decode.Implementation {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func expectLiteral(_ expected: [UInt8]) throws(RFC_8259.Error) {
-        let startCursor = lexer.scanner.position
+        let startCursor = scanner.position
         for expectedByte in expected {
-            guard let byte = lexer.scanner.peek() else {
+            guard let byte = scanner.peek() else {
                 throw .unexpectedEndOfInput(
                     at: currentPosition(),
                     expected: .value
@@ -387,7 +387,7 @@ extension RFC_8259.Decode.Implementation {
                     expected: .value
                 )
             }
-            lexer.scanner.advance()
+            scanner.advance()
         }
     }
 }
@@ -405,17 +405,17 @@ extension RFC_8259.Decode.Implementation {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func lexStringValue() throws(RFC_8259.Error) -> String {
-        let startCursor = lexer.scanner.position
+        let startCursor = scanner.position
 
-        lexer.scanner.advance() // Consume opening `"`.
+        scanner.advance() // Consume opening `"`.
 
         stringScratch.removeAll(keepingCapacity: true)
         var isASCII = true
 
-        while let byte = lexer.scanner.peek() {
+        while let byte = scanner.peek() {
             switch byte {
             case UInt8.ascii.quotationMark:      // " - closing quote
-                lexer.scanner.advance()
+                scanner.advance()
                 if isASCII {
                     let count = stringScratch.count
                     let result = stringScratch.withUnsafeBufferPointer { src -> String in
@@ -431,7 +431,7 @@ extension RFC_8259.Decode.Implementation {
                 return String(decoding: stringScratch, as: UTF8.self)
 
             case UInt8.ascii.reverseSlant:       // \ - escape sequence
-                lexer.scanner.advance()
+                scanner.advance()
                 let escapeBytes = try lexEscapeSequence()
                 for b in escapeBytes {
                     if b > 0x7F { isASCII = false }
@@ -444,7 +444,7 @@ extension RFC_8259.Decode.Implementation {
             default:
                 if byte > 0x7F { isASCII = false }
                 stringScratch.append(byte)
-                lexer.scanner.advance()
+                scanner.advance()
             }
         }
 
@@ -459,11 +459,11 @@ extension RFC_8259.Decode.Implementation {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func lexEscapeSequence() throws(RFC_8259.Error) -> [UInt8] {
-        guard let byte = lexer.scanner.peek() else {
+        guard let byte = scanner.peek() else {
             throw .unexpectedEndOfInput(at: currentPosition(), expected: .value)
         }
 
-        lexer.scanner.advance()
+        scanner.advance()
 
         switch byte {
         case UInt8.ascii.quotationMark:  return [.ascii.quotationMark]   // \"
@@ -488,14 +488,14 @@ extension RFC_8259.Decode.Implementation {
         hex.reserveCapacity(4)
 
         for _ in 0..<4 {
-            guard let byte = lexer.scanner.peek() else {
+            guard let byte = scanner.peek() else {
                 throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
             guard byte.ascii.isHexDigit else {
                 throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
             hex.append(byte)
-            lexer.scanner.advance()
+            scanner.advance()
         }
 
         guard let codePoint = parseHex(hex) else {
@@ -504,23 +504,23 @@ extension RFC_8259.Decode.Implementation {
 
         // Handle surrogate pairs.
         if codePoint >= 0xD800 && codePoint <= 0xDBFF {
-            guard lexer.scanner.peek() == UInt8.ascii.reverseSlant else {
+            guard scanner.peek() == UInt8.ascii.reverseSlant else {
                 throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
-            lexer.scanner.advance()
-            guard lexer.scanner.peek() == UInt8.ascii.u else {
+            scanner.advance()
+            guard scanner.peek() == UInt8.ascii.u else {
                 throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
-            lexer.scanner.advance()
+            scanner.advance()
 
             var lowHex: [UInt8] = []
             lowHex.reserveCapacity(4)
             for _ in 0..<4 {
-                guard let byte = lexer.scanner.peek(), byte.ascii.isHexDigit else {
+                guard let byte = scanner.peek(), byte.ascii.isHexDigit else {
                     throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
                 }
                 lowHex.append(byte)
-                lexer.scanner.advance()
+                scanner.advance()
             }
 
             guard let lowCodePoint = parseHex(lowHex),
@@ -563,16 +563,16 @@ extension RFC_8259.Decode.Implementation {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func lexNumberValue() throws(RFC_8259.Error) -> RFC_8259.Number {
-        let startCursor = lexer.scanner.position
+        let startCursor = scanner.position
         var bytes = Array_Primitives.Array<UInt8>.Small<24>()
 
         // Optional minus
-        if lexer.scanner.peek() == UInt8.ascii.hyphen {
-            bytes.append(lexer.consume())
+        if scanner.peek() == UInt8.ascii.hyphen {
+            bytes.append(scanner.consume())
         }
 
         // Integer part
-        guard let firstDigit = lexer.scanner.peek(), firstDigit.ascii.isDigit else {
+        guard let firstDigit = scanner.peek(), firstDigit.ascii.isDigit else {
             throw .invalidNumber(
                 at: position(at: startCursor),
                 reason: .missingDigits(context: "integer part")
@@ -580,57 +580,57 @@ extension RFC_8259.Decode.Implementation {
         }
 
         if firstDigit == UInt8.ascii.`0` { // Leading zero
-            bytes.append(lexer.consume())
+            bytes.append(scanner.consume())
 
-            if let next = lexer.scanner.peek(), next.ascii.isDigit {
+            if let next = scanner.peek(), next.ascii.isDigit {
                 throw .invalidNumber(
                     at: position(at: startCursor),
                     reason: .leadingZeros
                 )
             }
         } else {
-            while let byte = lexer.scanner.peek(), byte.ascii.isDigit {
-                bytes.append(lexer.consume())
+            while let byte = scanner.peek(), byte.ascii.isDigit {
+                bytes.append(scanner.consume())
             }
         }
 
         var isFloat = false
 
         // Optional fraction
-        if lexer.scanner.peek() == UInt8.ascii.period {
+        if scanner.peek() == UInt8.ascii.period {
             isFloat = true
-            bytes.append(lexer.consume())
+            bytes.append(scanner.consume())
 
-            guard let firstFracDigit = lexer.scanner.peek(), firstFracDigit.ascii.isDigit else {
+            guard let firstFracDigit = scanner.peek(), firstFracDigit.ascii.isDigit else {
                 throw .invalidNumber(
                     at: position(at: startCursor),
                     reason: .missingDigits(context: "fraction")
                 )
             }
 
-            while let byte = lexer.scanner.peek(), byte.ascii.isDigit {
-                bytes.append(lexer.consume())
+            while let byte = scanner.peek(), byte.ascii.isDigit {
+                bytes.append(scanner.consume())
             }
         }
 
         // Optional exponent
-        if let e = lexer.scanner.peek(), e == UInt8.ascii.e || e == UInt8.ascii.E {
+        if let e = scanner.peek(), e == UInt8.ascii.e || e == UInt8.ascii.E {
             isFloat = true
-            bytes.append(lexer.consume())
+            bytes.append(scanner.consume())
 
-            if let sign = lexer.scanner.peek(), sign == UInt8.ascii.plusSign || sign == UInt8.ascii.hyphen {
-                bytes.append(lexer.consume())
+            if let sign = scanner.peek(), sign == UInt8.ascii.plusSign || sign == UInt8.ascii.hyphen {
+                bytes.append(scanner.consume())
             }
 
-            guard let firstExpDigit = lexer.scanner.peek(), firstExpDigit.ascii.isDigit else {
+            guard let firstExpDigit = scanner.peek(), firstExpDigit.ascii.isDigit else {
                 throw .invalidNumber(
                     at: position(at: startCursor),
                     reason: .missingDigits(context: "exponent")
                 )
             }
 
-            while let byte = lexer.scanner.peek(), byte.ascii.isDigit {
-                bytes.append(lexer.consume())
+            while let byte = scanner.peek(), byte.ascii.isDigit {
+                bytes.append(scanner.consume())
             }
         }
 
