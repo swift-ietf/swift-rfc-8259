@@ -129,21 +129,25 @@ extension RFC_8259.Span.EventStream {
         isUnforkedAtPositionZeroStorage
     }
 
-    /// Short-circuit consumer used by `JSON.Assemble.from(_:)` per
-    /// the §4.3 mitigation. Delegates the whole document to
-    /// `RFC_8259.Span.Parser.parse(_:)` over the same byte span the
-    /// EventStream wraps, then marks the stream as consumed.
+    /// Short-circuit primitive: consume the entire unfork-at-position-0
+    /// stream as a single `RFC_8259.Value` via the established Span
+    /// parser path. Equivalent to `RFC_8259.Span.Parser.parse(_:)` over
+    /// the bytes the stream borrows.
     ///
     /// Caller MUST verify `isUnforkedAtPositionZero == true` before
     /// invoking this — calling on a stream that has already advanced
     /// produces undefined behaviour (the parser would re-parse from
     /// position 0 regardless of where the stream actually is).
     ///
-    /// Internal SPI — exposed only to the JSON layer's short-circuit;
-    /// not part of the public event-stream API.
+    /// Public so that `JSON.Assemble.from(_:)` can route the §4.3
+    /// default-fallback short-circuit through the existing tree
+    /// builder without paying the event-pull-then-rebuild cost
+    /// measured at 4.48× in the A0 spike. The naming pre-empts misuse:
+    /// "consume as parse value" makes clear the cursor is left fully
+    /// advanced after the call.
     @inlinable
     @_lifetime(self: copy self)
-    internal mutating func consumeAsParseValue() throws(RFC_8259.Error) -> RFC_8259.Value {
+    public mutating func consumeAsParseValue() throws(RFC_8259.Error) -> RFC_8259.Value {
         // We KNOW we're unforked at position 0; consume the whole
         // document via the established Span.Parser path and mark
         // ourselves consumed.
