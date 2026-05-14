@@ -113,12 +113,25 @@ extension RFC_8259.Span.Parser {
 // MARK: - Current-position helper
 
 extension RFC_8259.Span.Parser {
-    /// Builds `RFC_8259.Position` from the lexer's current cursor +
-    /// location. O(1) — the Scanner's tracker maintains line:column
-    /// incrementally, so no scan is required at error sites.
+    /// Builds `RFC_8259.Position` from the lexer's current cursor.
+    /// Line:column is computed by source scan via
+    /// ``Lexer/Scanner/location(at:)`` — O(N) at the throw site,
+    /// zero cost on the hot path. JSON tokens cannot contain raw
+    /// newlines (RFC 8259 §7) so the parser skips per-byte tracker
+    /// updates in `skipWhitespace`.
     @inlinable
     internal func currentPosition() -> RFC_8259.Position {
-        RFC_8259.Position(offset: lexer.scanner.position, location: lexer.scanner.location)
+        let pos = lexer.scanner.position
+        return RFC_8259.Position(offset: pos, location: lexer.scanner.location(at:pos))
+    }
+
+    /// Builds `RFC_8259.Position` from a previously captured cursor.
+    /// Resolves line:column via the source scan only when an error
+    /// fires — the hot path captures cheap `Text.Position` and pays
+    /// no tracker arithmetic per token.
+    @inlinable
+    internal func position(at cursor: Text.Position) -> RFC_8259.Position {
+        RFC_8259.Position(offset: cursor, location: lexer.scanner.location(at:cursor))
     }
 }
 
@@ -323,11 +336,12 @@ extension RFC_8259.Span.Parser {
     /// predicate hashes every byte. Direct equality checks are
     /// branchless on ARM64 after constant folding.
     ///
-    /// Newlines update the Scanner's `Text.Location.Tracker` so that
-    /// subsequent error-site position queries report correct
-    /// line:column. JSON tokens (strings, numbers, literals) cannot
-    /// contain raw 0x0A / 0x0D — they MUST be escaped per RFC 8259 §7
-    /// — so newline tracking only fires here, in inter-token whitespace.
+    /// JSON tokens (strings, numbers, literals) cannot contain raw
+    /// 0x0A / 0x0D — they MUST be escaped per RFC 8259 §7 — so the
+    /// only place newlines can appear is here, in inter-token
+    /// whitespace. The parser elides per-newline tracker updates on
+    /// the hot path; error-site line:column is recovered via the
+    /// O(N) ``Lexer/Scanner/location(at:)`` scan at throw sites.
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func skipWhitespace() {
@@ -335,15 +349,11 @@ extension RFC_8259.Span.Parser {
             // Inline the whitespace check: space (0x20), tab (0x09),
             // LF (0x0A), CR (0x0D). RFC 8259 §2.
             switch byte {
-            case 0x20, 0x09:
-                lexer.scanner.advance()
-            case 0x0A:
-                lexer.scanner.newline(at: lexer.scanner.position)
+            case 0x20, 0x09, 0x0A:
                 lexer.scanner.advance()
             case 0x0D:
-                lexer.scanner.newline(at: lexer.scanner.position)
                 lexer.scanner.advance()
-                // CRLF: consume the LF without re-counting the newline.
+                // CRLF: consume the LF as a single logical newline.
                 if lexer.scanner.peek() == 0x0A {
                     lexer.scanner.advance()
                 }
@@ -370,7 +380,6 @@ extension RFC_8259.Span.Parser {
     @_lifetime(self: copy self)
     internal mutating func expectLiteral(_ expected: [UInt8]) throws(RFC_8259.Error) {
         let startCursor = lexer.scanner.position
-        let startLocation = lexer.scanner.location
         for expectedByte in expected {
             guard let byte = lexer.scanner.peek() else {
                 throw .unexpectedEndOfInput(
@@ -380,7 +389,7 @@ extension RFC_8259.Span.Parser {
             }
             guard byte == expectedByte else {
                 throw .unexpectedToken(
-                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    at: position(at: startCursor),
                     found: .unknown(byte),
                     expected: .value
                 )
@@ -404,7 +413,6 @@ extension RFC_8259.Span.Parser {
     @_lifetime(self: copy self)
     internal mutating func lexStringValue() throws(RFC_8259.Error) -> String {
         let startCursor = lexer.scanner.position
-        let startLocation = lexer.scanner.location
 
         lexer.scanner.advance() // Consume opening `"`.
 
@@ -449,7 +457,7 @@ extension RFC_8259.Span.Parser {
 
         // Report the position at the start of the (now-unterminated) string.
         throw .invalidString(
-            at: RFC_8259.Position(offset: startCursor, location: startLocation),
+            at: position(at: startCursor),
             reason: .unterminated
         )
     }
@@ -563,7 +571,6 @@ extension RFC_8259.Span.Parser {
     @_lifetime(self: copy self)
     internal mutating func lexNumberValue() throws(RFC_8259.Error) -> RFC_8259.Number {
         let startCursor = lexer.scanner.position
-        let startLocation = lexer.scanner.location
         var bytes = Array_Primitives.Array<UInt8>.Small<24>()
 
         // Optional minus
@@ -574,7 +581,7 @@ extension RFC_8259.Span.Parser {
         // Integer part
         guard let firstDigit = lexer.scanner.peek(), firstDigit.ascii.isDigit else {
             throw .invalidNumber(
-                at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                at: position(at: startCursor),
                 reason: .missingDigits(context: "integer part")
             )
         }
@@ -584,7 +591,7 @@ extension RFC_8259.Span.Parser {
 
             if let next = lexer.scanner.peek(), next.ascii.isDigit {
                 throw .invalidNumber(
-                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    at: position(at: startCursor),
                     reason: .leadingZeros
                 )
             }
@@ -603,7 +610,7 @@ extension RFC_8259.Span.Parser {
 
             guard let firstFracDigit = lexer.scanner.peek(), firstFracDigit.ascii.isDigit else {
                 throw .invalidNumber(
-                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    at: position(at: startCursor),
                     reason: .missingDigits(context: "fraction")
                 )
             }
@@ -624,7 +631,7 @@ extension RFC_8259.Span.Parser {
 
             guard let firstExpDigit = lexer.scanner.peek(), firstExpDigit.ascii.isDigit else {
                 throw .invalidNumber(
-                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    at: position(at: startCursor),
                     reason: .missingDigits(context: "exponent")
                 )
             }
@@ -647,7 +654,7 @@ extension RFC_8259.Span.Parser {
         if isFloat {
             guard let value = Double(numStr), value.isFinite else {
                 throw .invalidNumber(
-                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    at: position(at: startCursor),
                     reason: .overflow
                 )
             }
@@ -661,7 +668,7 @@ extension RFC_8259.Span.Parser {
                 return RFC_8259.Number(value, original: original)
             } else {
                 throw .invalidNumber(
-                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    at: position(at: startCursor),
                     reason: .overflow
                 )
             }
