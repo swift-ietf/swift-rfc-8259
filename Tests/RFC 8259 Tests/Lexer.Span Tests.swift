@@ -420,43 +420,31 @@ struct LexerSpanTests {
     }
 
     @Test
-    func `Span lazy position cache invariant`() throws {
-        // Build a Span.Lexer directly so we can probe the cache field.
-        // The cache uses offset-comparison (not Optional<nil>
-        // invalidation) — `cachedPositionOffset` tracks the offset at
-        // which `cachedPosition` was computed; mismatch ⇒ stale.
-        let bytes: [UInt8] = Swift.Array("ab\nc".utf8)
-        try bytes.withUnsafeBufferPointer { buffer in
-            let span = buffer.span
-            var lexer = RFC_8259.Span.Lexer(span)
-            // Initial cache is invalid (sentinel offset).
-            #expect(lexer.cachedPositionOffset == -1)
-            #expect(lexer.cachedPosition == nil)
-
-            // Advance once — cache still stale (offset != current).
-            lexer.advance()
-            #expect(lexer.cachedPositionOffset != lexer.position)
-
-            // First read populates the cache for the current offset.
-            let pos1 = lexer.materializedPosition()
-            #expect(lexer.cachedPositionOffset == lexer.position)
-            #expect(lexer.cachedPosition == pos1)
-
-            // Repeated read returns the cached value (no scan).
-            let pos2 = lexer.materializedPosition()
-            #expect(pos1 == pos2)
-
-            // Another advance: cache becomes stale (offsets diverge).
-            lexer.advance()
-            #expect(lexer.cachedPositionOffset != lexer.position)
-
-            // After crossing a newline, the recomputation returns a
-            // different position (line 2).
-            lexer.advance() // consume '\n'
-            let pos3 = lexer.materializedPosition()
-            #expect(pos3.location.line.underlying == 2)
-            #expect(lexer.cachedPositionOffset == lexer.position)
-            #expect(lexer.cachedPosition == pos3)
+    func `Span lazy position reports line 2 after a newline`() throws {
+        // After the migration to Lexer.Scanner, line:column tracking is
+        // O(1) via Text.Location.Tracker (updated incrementally by the
+        // parser's skipWhitespace). The original cache-invariant
+        // mechanism (cachedPosition / cachedPositionOffset / per-error
+        // rescan) is gone. This test verifies the equivalent observable
+        // behaviour: a syntax error AFTER a newline reports line 2.
+        //
+        // Input: `{\n  "bad"` — unterminated key string on line 2.
+        let json = "{\n  \"bad"
+        do {
+            _ = try RFC_8259.decode(json)
+            Issue.record("Expected parse error")
+        } catch let err as RFC_8259.Error {
+            let location: Text.Location
+            switch err {
+            case .unexpectedToken(let pos, _, _): location = pos.location
+            case .unexpectedEndOfInput(let pos, _): location = pos.location
+            case .invalidNumber(let pos, _): location = pos.location
+            case .invalidString(let pos, _): location = pos.location
+            case .invalidUTF8(let pos, _): location = pos.location
+            case .depthExceeded(let pos, _): location = pos.location
+            case .trailingContent(let pos): location = pos.location
+            }
+            #expect(location.line.underlying == 2)
         }
     }
 }

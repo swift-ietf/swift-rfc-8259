@@ -4,7 +4,11 @@
 /// Pull-driven event cursor for JSON parsing.
 ///
 /// Phase A1 of the streaming-deserialize work
-/// (`swift-institute/Research/streaming-json-deserialize-comparative-analysis.md`).
+/// (`swift-institute/Research/streaming-json-deserialize-comparative-analysis.md`),
+/// rebased onto `Lexer.Scanner` from swift-lexer-primitives per the
+/// streaming-deserialize placement audit's Ticket T-1
+/// (`swift-institute/Audits/streaming-deserialize-placement-audit.md`).
+///
 /// Option B (event-emitting Span parser γ) — the per-token cursor
 /// over `Swift.Span<UInt8>` that lets consumers drive a partial-shape
 /// decode without materialising a full `RFC_8259.Value` tree.
@@ -44,10 +48,13 @@
 /// Per `streaming-json-deserialize-comparative-analysis.md` v1.0.1
 /// §9.3, the stream MUST expose an `isUnforkedAtPositionZero` property
 /// that returns `true` until the first mutating call advances the
-/// cursor. This enables `JSON.Assemble.from(_:)` to short-circuit to
+/// cursor. This enables `RFC_8259.Span.Assemble.from(_:)` (re-homed
+/// from `JSON.Assemble.from(_:)` per audit T-2) to short-circuit to
 /// `RFC_8259.Span.Parser.parse(_:)` on the default-fallback path,
 /// avoiding the 4.48× silent-regression risk measured in the A0
 /// spike's `check-lifetime-inout-protocol` target.
+
+public import Lexer_Primitives
 
 extension RFC_8259.Span {
     /// Pull-driven event cursor over a contiguous-bytes JSON input.
@@ -90,22 +97,49 @@ extension RFC_8259.Span {
         ///
         /// Init sets `true`; `next()` / `currentString()` /
         /// `currentNumber()` / `skipValue()` each clear it on first
-        /// call. `JSON.Assemble.from(_:)` reads this to decide whether
-        /// to short-circuit to `RFC_8259.Span.Parser.parse(_:)`.
+        /// call. `RFC_8259.Span.Assemble.from(_:)` reads this to decide
+        /// whether to short-circuit to `RFC_8259.Span.Parser.parse(_:)`.
         @usableFromInline
         internal var isUnforkedAtPositionZeroStorage: Bool
+
+        /// `true` after `consumeAsParseValue()` has consumed the entire
+        /// input via the Span.Parser short-circuit. Subsequent `next()`
+        /// / `peek*` calls return `nil` / no-op so the cursor cannot
+        /// be re-driven past the consumed value.
+        @usableFromInline
+        internal var isConsumed: Bool
+
+        /// The original byte span stashed at init time so
+        /// `consumeAsParseValue()` can drive `RFC_8259.Span.Parser.parse`
+        /// without reaching into the Scanner's storage.
+        @usableFromInline
+        internal let bytes: Swift.Span<UInt8>
 
         @inlinable
         @_lifetime(borrow bytes)
         public init(_ bytes: borrowing Swift.Span<UInt8>, maxDepth: Int = 512) {
             self.lexer = RFC_8259.Span.Lexer(bytes)
+            self.bytes = copy bytes
             self.depth = 0
             self.maxDepth = maxDepth
             var scratch: [UInt8] = []
             scratch.reserveCapacity(64)
             self.stringScratch = scratch
             self.isUnforkedAtPositionZeroStorage = true
+            self.isConsumed = false
         }
+    }
+}
+
+// MARK: - Current-position helper
+
+extension RFC_8259.Span.EventStream {
+    /// Builds `RFC_8259.Position` from the lexer's current cursor +
+    /// location. O(1) — the Scanner's tracker maintains line:column
+    /// incrementally.
+    @inlinable
+    internal func currentPosition() -> RFC_8259.Position {
+        RFC_8259.Position(offset: lexer.scanner.position, location: lexer.scanner.location)
     }
 }
 
@@ -117,9 +151,9 @@ extension RFC_8259.Span.EventStream {
     ///
     /// `true` immediately after `init`; becomes `false` after the first
     /// call to `next()` / `currentString()` / `currentNumber()` /
-    /// `skipValue()`. Used by `JSON.Assemble.from(_:)` to short-circuit
-    /// to the existing tree-building path when no events have been
-    /// consumed.
+    /// `skipValue()`. Used by `RFC_8259.Span.Assemble.from(_:)` to
+    /// short-circuit to the existing tree-building path when no events
+    /// have been consumed.
     ///
     /// Per the streaming-deserialize-comparative-analysis v1.0.1 §9.3:
     /// this primitive is REQUIRED for the §4.3 implementation-side
@@ -141,14 +175,15 @@ extension RFC_8259.Span.EventStream {
     /// produces undefined behaviour: the parser re-parses from position
     /// 0 regardless of where the stream actually is, returning a value
     /// inconsistent with the caller's expected position. The cursor is
-    /// left FULLY ADVANCED (position set to `totalCount`) after the
-    /// call; subsequent `next()` / `currentString()` / `currentNumber()`
-    /// will return `nil` / throw end-of-input.
+    /// left FULLY ADVANCED (cursor at source.count) after the call;
+    /// subsequent `next()` / `currentString()` / `currentNumber()` will
+    /// return `nil` / throw end-of-input.
     ///
     /// ## Why public, not SPI
     ///
     /// This primitive is internal coupling between `swift-rfc-8259` and
-    /// `swift-json`'s `JSON.Assemble.from(_:)` to route the streaming-
+    /// `swift-json`'s `JSON.Assemble.from(_:)` (the thin wrapper over
+    /// `RFC_8259.Span.Assemble.from(_:)`) to route the streaming-
     /// deserialize-comparative-analysis v1.0.1 §4.3 default-fallback
     /// short-circuit through the existing tree builder without paying
     /// the event-pull-then-rebuild cost measured at 4.48× in the A0
@@ -159,12 +194,12 @@ extension RFC_8259.Span.EventStream {
     /// the cross-module consumer site. Verbatim Swift 6.3.2 compiler
     /// error: *"instance method 'consumeAsParseValue()' cannot be used
     /// in an '@inlinable' function because it is an SPI imported from
-    /// 'RFC_8259'"*. The consumer (`JSON.Assemble.from`) MUST be
-    /// `@inlinable` to allow the default-fallback short-circuit chain
-    /// to inline at every opt-out conformer site; without inlining,
-    /// the protocol-dispatch chain adds witness-table overhead and the
-    /// 5.3 % noise-floor non-regression measurement at A2 axis (b)
-    /// would widen.
+    /// 'RFC_8259'"*. The consumer (`RFC_8259.Span.Assemble.from`) MUST
+    /// be `@inlinable` to allow the default-fallback short-circuit
+    /// chain to inline at every opt-out conformer site; without
+    /// inlining, the protocol-dispatch chain adds witness-table
+    /// overhead and the 5.3 % noise-floor non-regression measurement
+    /// at A2 axis (b) would widen.
     ///
     /// The naming pre-empts misuse: "consume as parse value" makes
     /// clear the cursor is left fully advanced after the call.
@@ -173,17 +208,20 @@ extension RFC_8259.Span.EventStream {
     /// a future consumer thinks they do, they probably want the public
     /// `RFC_8259.parse(_:)` API instead. The primitive exists only
     /// because the §4.3 short-circuit needs a tightly-coupled fast path
-    /// between `JSON.Span.EventStream`'s position-0 state and the
-    /// existing Span.Parser surface.
+    /// between the `EventStream`'s position-0 state and the existing
+    /// Span.Parser surface.
     @inlinable
     @_lifetime(self: copy self)
     public mutating func consumeAsParseValue() throws(RFC_8259.Error) -> RFC_8259.Value {
         // We KNOW we're unforked at position 0; consume the whole
         // document via the established Span.Parser path and mark
         // ourselves consumed.
-        let value = try RFC_8259.Span.Parser.parse(lexer.bytes, maxDepth: maxDepth)
+        let value = try RFC_8259.Span.Parser.parse(bytes, maxDepth: maxDepth)
         isUnforkedAtPositionZeroStorage = false
-        lexer.position = lexer.totalCount
+        // Mark consumed so subsequent peek/next return nil — the
+        // Scanner's cursor stays where it was (position 0) but the
+        // EventStream's external contract reports end-of-input.
+        isConsumed = true
         return value
     }
 
@@ -191,7 +229,7 @@ extension RFC_8259.Span.EventStream {
     @inlinable
     @_lifetime(self: copy self)
     public mutating func position() -> RFC_8259.Position {
-        lexer.materializedPosition()
+        currentPosition()
     }
 
     /// Peeks at the next non-whitespace byte without consuming a token.
@@ -208,12 +246,13 @@ extension RFC_8259.Span.EventStream {
     /// followed by a `parse()` produces the same result as `parse()`
     /// from position 0.
     ///
-    /// Returns `nil` at end of input.
+    /// Returns `nil` at end of input or after `consumeAsParseValue()`.
     @inlinable
     @_lifetime(self: copy self)
     public mutating func peekStructural() -> UInt8? {
+        if isConsumed { return nil }
         skipWhitespace()
-        return lexer.peek
+        return lexer.scanner.peek()
     }
 }
 
@@ -238,46 +277,47 @@ extension RFC_8259.Span.EventStream {
     @inlinable
     @_lifetime(self: copy self)
     public mutating func next() throws(RFC_8259.Error) -> RFC_8259.Token.Kind? {
+        if isConsumed { return nil }
         isUnforkedAtPositionZeroStorage = false
         skipWhitespace()
 
-        guard let byte = lexer.peek else {
+        guard let byte = lexer.scanner.peek() else {
             return nil
         }
 
         switch byte {
         case UInt8.ascii.leftBrace:              // {
-            lexer.advance()
+            lexer.scanner.advance()
             depth &+= 1
             if depth > maxDepth {
-                throw .depthExceeded(at: lexer.materializedPosition(), limit: maxDepth)
+                throw .depthExceeded(at: currentPosition(), limit: maxDepth)
             }
             return .objectStart
 
         case UInt8.ascii.rightBrace:             // }
-            lexer.advance()
+            lexer.scanner.advance()
             depth &-= 1
             return .objectEnd
 
         case UInt8.ascii.leftBracket:            // [
-            lexer.advance()
+            lexer.scanner.advance()
             depth &+= 1
             if depth > maxDepth {
-                throw .depthExceeded(at: lexer.materializedPosition(), limit: maxDepth)
+                throw .depthExceeded(at: currentPosition(), limit: maxDepth)
             }
             return .arrayStart
 
         case UInt8.ascii.rightBracket:           // ]
-            lexer.advance()
+            lexer.scanner.advance()
             depth &-= 1
             return .arrayEnd
 
         case UInt8.ascii.colon:                  // :
-            lexer.advance()
+            lexer.scanner.advance()
             return .colon
 
         case UInt8.ascii.comma:                  // ,
-            lexer.advance()
+            lexer.scanner.advance()
             return .comma
 
         case UInt8.ascii.quotationMark:          // "
@@ -303,7 +343,7 @@ extension RFC_8259.Span.EventStream {
 
         default:
             throw .unexpectedToken(
-                at: lexer.materializedPosition(),
+                at: currentPosition(),
                 found: .unknown(byte),
                 expected: .value
             )
@@ -381,7 +421,7 @@ extension RFC_8259.Span.EventStream {
         // simplest correct shape: track a target depth and walk forward,
         // counting opens/closes balanced on quoted strings.
         skipWhitespace()
-        guard let byte = lexer.peek else {
+        guard let byte = lexer.scanner.peek() else {
             return
         }
 
@@ -420,7 +460,7 @@ extension RFC_8259.Span.EventStream {
 
         default:
             throw .unexpectedToken(
-                at: lexer.materializedPosition(),
+                at: currentPosition(),
                 found: .unknown(byte),
                 expected: .value
             )
@@ -433,56 +473,59 @@ extension RFC_8259.Span.EventStream {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func skipStringValue() throws(RFC_8259.Error) {
-        let startOffset = lexer.position
-        lexer.advance() // Consume opening `"`.
+        let startCursor = lexer.scanner.position
+        let startLocation = lexer.scanner.location
+        lexer.scanner.advance() // Consume opening `"`.
 
-        while let byte = lexer.peek {
+        while let byte = lexer.scanner.peek() {
             switch byte {
             case UInt8.ascii.quotationMark:      // " - closing quote
-                lexer.advance()
+                lexer.scanner.advance()
                 return
 
             case UInt8.ascii.reverseSlant:       // \ - escape sequence
-                lexer.advance()
+                lexer.scanner.advance()
                 // Skip the escape character; for \uXXXX, skip the 4
                 // hex bytes plus any surrogate continuation.
-                guard let esc = lexer.peek else {
-                    throw .invalidString(at: lexer.materializedPosition(), reason: .unterminated)
+                guard let esc = lexer.scanner.peek() else {
+                    throw .invalidString(at: currentPosition(), reason: .unterminated)
                 }
-                lexer.advance()
+                lexer.scanner.advance()
                 if esc == UInt8.ascii.u {
                     // Skip 4 hex digits.
                     for _ in 0..<4 {
-                        guard let b = lexer.peek, b.ascii.isHexDigit else {
-                            throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+                        guard let b = lexer.scanner.peek(), b.ascii.isHexDigit else {
+                            throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
                         }
-                        lexer.advance()
+                        lexer.scanner.advance()
                     }
                     // Optional surrogate pair continuation.
-                    if lexer.peek == UInt8.ascii.reverseSlant,
+                    if lexer.scanner.peek() == UInt8.ascii.reverseSlant,
                        lexer.peek(offset: 1) == UInt8.ascii.u {
-                        lexer.advance() // \
-                        lexer.advance() // u
+                        lexer.scanner.advance() // \
+                        lexer.scanner.advance() // u
                         for _ in 0..<4 {
-                            guard let b = lexer.peek, b.ascii.isHexDigit else {
-                                throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+                            guard let b = lexer.scanner.peek(), b.ascii.isHexDigit else {
+                                throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
                             }
-                            lexer.advance()
+                            lexer.scanner.advance()
                         }
                     }
                 }
 
             case 0x00...0x1F:                    // Control characters
-                throw .invalidString(at: lexer.materializedPosition(), reason: .controlCharacter(byte))
+                throw .invalidString(at: currentPosition(), reason: .controlCharacter(byte))
 
             default:
-                lexer.advance()
+                lexer.scanner.advance()
             }
         }
 
         // EOF before closing quote.
-        let startPos = lexer.positionAt(byteOffset: startOffset)
-        throw .invalidString(at: startPos, reason: .unterminated)
+        throw .invalidString(
+            at: RFC_8259.Position(offset: startCursor, location: startLocation),
+            reason: .unterminated
+        )
     }
 
     /// Skips a container at the current position (cursor at `{` or `[`).
@@ -490,24 +533,24 @@ extension RFC_8259.Span.EventStream {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func skipContainerBalanced() throws(RFC_8259.Error) {
-        let opener = lexer.peek!
+        let opener = lexer.scanner.peek()!
         let closer: UInt8 =
             (opener == UInt8.ascii.leftBrace) ? UInt8.ascii.rightBrace : UInt8.ascii.rightBracket
-        lexer.advance() // Consume the opener.
+        lexer.scanner.advance() // Consume the opener.
 
         var balance = 1
         let startDepth = depth
         depth &+= 1
         if depth > maxDepth {
-            throw .depthExceeded(at: lexer.materializedPosition(), limit: maxDepth)
+            throw .depthExceeded(at: currentPosition(), limit: maxDepth)
         }
         defer { depth = startDepth }
 
         while balance > 0 {
             skipWhitespace()
-            guard let byte = lexer.peek else {
+            guard let byte = lexer.scanner.peek() else {
                 throw .unexpectedEndOfInput(
-                    at: lexer.materializedPosition(),
+                    at: currentPosition(),
                     expected: (closer == UInt8.ascii.rightBrace) ? .objectEnd : .arrayEnd
                 )
             }
@@ -517,20 +560,20 @@ extension RFC_8259.Span.EventStream {
                 try skipStringValue()
 
             case UInt8.ascii.leftBrace, UInt8.ascii.leftBracket:
-                lexer.advance()
+                lexer.scanner.advance()
                 balance &+= 1
                 depth &+= 1
                 if depth > maxDepth {
-                    throw .depthExceeded(at: lexer.materializedPosition(), limit: maxDepth)
+                    throw .depthExceeded(at: currentPosition(), limit: maxDepth)
                 }
 
             case UInt8.ascii.rightBrace, UInt8.ascii.rightBracket:
-                lexer.advance()
+                lexer.scanner.advance()
                 balance &-= 1
                 depth &-= 1
 
             default:
-                lexer.advance()
+                lexer.scanner.advance()
             }
         }
     }
@@ -549,9 +592,9 @@ extension RFC_8259.Span.EventStream {
 
         while depth > targetDepth {
             skipWhitespace()
-            guard let byte = lexer.peek else {
+            guard let byte = lexer.scanner.peek() else {
                 throw .unexpectedEndOfInput(
-                    at: lexer.materializedPosition(),
+                    at: currentPosition(),
                     expected: .commaOrEnd
                 )
             }
@@ -561,18 +604,18 @@ extension RFC_8259.Span.EventStream {
                 try skipStringValue()
 
             case UInt8.ascii.leftBrace, UInt8.ascii.leftBracket:
-                lexer.advance()
+                lexer.scanner.advance()
                 depth &+= 1
                 if depth > maxDepth {
-                    throw .depthExceeded(at: lexer.materializedPosition(), limit: maxDepth)
+                    throw .depthExceeded(at: currentPosition(), limit: maxDepth)
                 }
 
             case UInt8.ascii.rightBrace, UInt8.ascii.rightBracket:
-                lexer.advance()
+                lexer.scanner.advance()
                 depth &-= 1
 
             default:
-                lexer.advance()
+                lexer.scanner.advance()
             }
         }
     }
@@ -583,13 +626,28 @@ extension RFC_8259.Span.EventStream {
 extension RFC_8259.Span.EventStream {
     /// Inline whitespace skip — same branchless four-way check as
     /// `RFC_8259.Span.Parser.skipWhitespace` per the post-A1 profile.
+    ///
+    /// Newlines update the Scanner's `Text.Location.Tracker` so that
+    /// subsequent error-site position queries report correct
+    /// line:column.
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func skipWhitespace() {
-        while let byte = lexer.peek {
-            if byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0D {
-                lexer.advance()
-            } else {
+        while let byte = lexer.scanner.peek() {
+            switch byte {
+            case 0x20, 0x09:
+                lexer.scanner.advance()
+            case 0x0A:
+                lexer.scanner.newline(at: lexer.scanner.position)
+                lexer.scanner.advance()
+            case 0x0D:
+                lexer.scanner.newline(at: lexer.scanner.position)
+                lexer.scanner.advance()
+                // CRLF: consume the LF without re-counting the newline.
+                if lexer.scanner.peek() == 0x0A {
+                    lexer.scanner.advance()
+                }
+            default:
                 return
             }
         }
@@ -603,22 +661,23 @@ extension RFC_8259.Span.EventStream {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func expectLiteral(_ expected: [UInt8]) throws(RFC_8259.Error) {
-        let startOffset = lexer.position
+        let startCursor = lexer.scanner.position
+        let startLocation = lexer.scanner.location
         for expectedByte in expected {
-            guard let byte = lexer.peek else {
+            guard let byte = lexer.scanner.peek() else {
                 throw .unexpectedEndOfInput(
-                    at: lexer.positionAt(byteOffset: lexer.position),
+                    at: currentPosition(),
                     expected: .value
                 )
             }
             guard byte == expectedByte else {
                 throw .unexpectedToken(
-                    at: lexer.positionAt(byteOffset: startOffset),
+                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
                     found: .unknown(byte),
                     expected: .value
                 )
             }
-            lexer.advance()
+            lexer.scanner.advance()
         }
     }
 }
@@ -632,17 +691,18 @@ extension RFC_8259.Span.EventStream {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func lexStringValue() throws(RFC_8259.Error) -> String {
-        let startOffset = lexer.position
+        let startCursor = lexer.scanner.position
+        let startLocation = lexer.scanner.location
 
-        lexer.advance() // Consume opening `"`.
+        lexer.scanner.advance() // Consume opening `"`.
 
         stringScratch.removeAll(keepingCapacity: true)
         var isASCII = true
 
-        while let byte = lexer.peek {
+        while let byte = lexer.scanner.peek() {
             switch byte {
             case UInt8.ascii.quotationMark:      // " - closing quote
-                lexer.advance()
+                lexer.scanner.advance()
                 if isASCII {
                     let count = stringScratch.count
                     let result = stringScratch.withUnsafeBufferPointer { src -> String in
@@ -658,7 +718,7 @@ extension RFC_8259.Span.EventStream {
                 return String(decoding: stringScratch, as: UTF8.self)
 
             case UInt8.ascii.reverseSlant:       // \ - escape sequence
-                lexer.advance()
+                lexer.scanner.advance()
                 let escapeBytes = try lexEscapeSequence()
                 for b in escapeBytes {
                     if b > 0x7F { isASCII = false }
@@ -666,28 +726,30 @@ extension RFC_8259.Span.EventStream {
                 }
 
             case 0x00...0x1F:                    // Control characters (C0 range)
-                throw .invalidString(at: lexer.materializedPosition(), reason: .controlCharacter(byte))
+                throw .invalidString(at: currentPosition(), reason: .controlCharacter(byte))
 
             default:
                 if byte > 0x7F { isASCII = false }
                 stringScratch.append(byte)
-                lexer.advance()
+                lexer.scanner.advance()
             }
         }
 
-        let startPos = lexer.positionAt(byteOffset: startOffset)
-        throw .invalidString(at: startPos, reason: .unterminated)
+        throw .invalidString(
+            at: RFC_8259.Position(offset: startCursor, location: startLocation),
+            reason: .unterminated
+        )
     }
 
     /// Lexes an escape sequence after the backslash.
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func lexEscapeSequence() throws(RFC_8259.Error) -> [UInt8] {
-        guard let byte = lexer.peek else {
-            throw .unexpectedEndOfInput(at: lexer.materializedPosition(), expected: .value)
+        guard let byte = lexer.scanner.peek() else {
+            throw .unexpectedEndOfInput(at: currentPosition(), expected: .value)
         }
 
-        lexer.advance()
+        lexer.scanner.advance()
 
         switch byte {
         case UInt8.ascii.quotationMark:  return [.ascii.quotationMark]   // \"
@@ -700,7 +762,7 @@ extension RFC_8259.Span.EventStream {
         case UInt8.ascii.t:              return [.ascii.htab]            // \t
         case UInt8.ascii.u:              return try lexUnicodeEscape()   // \uXXXX
         default:
-            throw .invalidString(at: lexer.materializedPosition(), reason: .invalidEscape(byte))
+            throw .invalidString(at: currentPosition(), reason: .invalidEscape(byte))
         }
     }
 
@@ -712,55 +774,55 @@ extension RFC_8259.Span.EventStream {
         hex.reserveCapacity(4)
 
         for _ in 0..<4 {
-            guard let byte = lexer.peek else {
-                throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+            guard let byte = lexer.scanner.peek() else {
+                throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
             guard byte.ascii.isHexDigit else {
-                throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+                throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
             hex.append(byte)
-            lexer.advance()
+            lexer.scanner.advance()
         }
 
         guard let codePoint = parseHex(hex) else {
-            throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+            throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
         }
 
         // Handle surrogate pairs.
         if codePoint >= 0xD800 && codePoint <= 0xDBFF {
-            guard lexer.peek == UInt8.ascii.reverseSlant else {
-                throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+            guard lexer.scanner.peek() == UInt8.ascii.reverseSlant else {
+                throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
-            lexer.advance()
-            guard lexer.peek == UInt8.ascii.u else {
-                throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+            lexer.scanner.advance()
+            guard lexer.scanner.peek() == UInt8.ascii.u else {
+                throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
-            lexer.advance()
+            lexer.scanner.advance()
 
             var lowHex: [UInt8] = []
             lowHex.reserveCapacity(4)
             for _ in 0..<4 {
-                guard let byte = lexer.peek, byte.ascii.isHexDigit else {
-                    throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+                guard let byte = lexer.scanner.peek(), byte.ascii.isHexDigit else {
+                    throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
                 }
                 lowHex.append(byte)
-                lexer.advance()
+                lexer.scanner.advance()
             }
 
             guard let lowCodePoint = parseHex(lowHex),
                   lowCodePoint >= 0xDC00 && lowCodePoint <= 0xDFFF else {
-                throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+                throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
 
             let combined = 0x10000 + ((codePoint - 0xD800) << 10) + (lowCodePoint - 0xDC00)
             guard let combinedScalar = Unicode.Scalar(combined) else {
-                throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+                throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
             }
             return Swift.Array(String(combinedScalar).utf8)
         }
 
         guard let scalar = Unicode.Scalar(codePoint) else {
-            throw .invalidString(at: lexer.materializedPosition(), reason: .invalidUnicodeEscape)
+            throw .invalidString(at: currentPosition(), reason: .invalidUnicodeEscape)
         }
         return Swift.Array(String(scalar).utf8)
     }
@@ -787,63 +849,76 @@ extension RFC_8259.Span.EventStream {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func lexNumberValue() throws(RFC_8259.Error) -> RFC_8259.Number {
-        let startOffset = lexer.position
+        let startCursor = lexer.scanner.position
+        let startLocation = lexer.scanner.location
         var bytes: [UInt8] = []
         bytes.reserveCapacity(24)
 
         // Optional minus
-        if lexer.peek == UInt8.ascii.hyphen {
-            bytes.append(lexer.advance())
+        if lexer.scanner.peek() == UInt8.ascii.hyphen {
+            bytes.append(lexer.consume())
         }
 
         // Integer part
-        guard let firstDigit = lexer.peek, firstDigit.ascii.isDigit else {
-            throw .invalidNumber(at: lexer.positionAt(byteOffset: startOffset), reason: .missingDigits(context: "integer part"))
+        guard let firstDigit = lexer.scanner.peek(), firstDigit.ascii.isDigit else {
+            throw .invalidNumber(
+                at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                reason: .missingDigits(context: "integer part")
+            )
         }
 
         if firstDigit == UInt8.ascii.`0` { // Leading zero
-            bytes.append(lexer.advance())
+            bytes.append(lexer.consume())
 
-            if let next = lexer.peek, next.ascii.isDigit {
-                throw .invalidNumber(at: lexer.positionAt(byteOffset: startOffset), reason: .leadingZeros)
+            if let next = lexer.scanner.peek(), next.ascii.isDigit {
+                throw .invalidNumber(
+                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    reason: .leadingZeros
+                )
             }
         } else {
-            while let byte = lexer.peek, byte.ascii.isDigit {
-                bytes.append(lexer.advance())
+            while let byte = lexer.scanner.peek(), byte.ascii.isDigit {
+                bytes.append(lexer.consume())
             }
         }
 
         var isFloat = false
 
         // Optional fraction
-        if lexer.peek == UInt8.ascii.period {
+        if lexer.scanner.peek() == UInt8.ascii.period {
             isFloat = true
-            bytes.append(lexer.advance())
+            bytes.append(lexer.consume())
 
-            guard let firstFracDigit = lexer.peek, firstFracDigit.ascii.isDigit else {
-                throw .invalidNumber(at: lexer.positionAt(byteOffset: startOffset), reason: .missingDigits(context: "fraction"))
+            guard let firstFracDigit = lexer.scanner.peek(), firstFracDigit.ascii.isDigit else {
+                throw .invalidNumber(
+                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    reason: .missingDigits(context: "fraction")
+                )
             }
 
-            while let byte = lexer.peek, byte.ascii.isDigit {
-                bytes.append(lexer.advance())
+            while let byte = lexer.scanner.peek(), byte.ascii.isDigit {
+                bytes.append(lexer.consume())
             }
         }
 
         // Optional exponent
-        if let e = lexer.peek, e == UInt8.ascii.e || e == UInt8.ascii.E {
+        if let e = lexer.scanner.peek(), e == UInt8.ascii.e || e == UInt8.ascii.E {
             isFloat = true
-            bytes.append(lexer.advance())
+            bytes.append(lexer.consume())
 
-            if let sign = lexer.peek, sign == UInt8.ascii.plusSign || sign == UInt8.ascii.hyphen {
-                bytes.append(lexer.advance())
+            if let sign = lexer.scanner.peek(), sign == UInt8.ascii.plusSign || sign == UInt8.ascii.hyphen {
+                bytes.append(lexer.consume())
             }
 
-            guard let firstExpDigit = lexer.peek, firstExpDigit.ascii.isDigit else {
-                throw .invalidNumber(at: lexer.positionAt(byteOffset: startOffset), reason: .missingDigits(context: "exponent"))
+            guard let firstExpDigit = lexer.scanner.peek(), firstExpDigit.ascii.isDigit else {
+                throw .invalidNumber(
+                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    reason: .missingDigits(context: "exponent")
+                )
             }
 
-            while let byte = lexer.peek, byte.ascii.isDigit {
-                bytes.append(lexer.advance())
+            while let byte = lexer.scanner.peek(), byte.ascii.isDigit {
+                bytes.append(lexer.consume())
             }
         }
 
@@ -852,7 +927,10 @@ extension RFC_8259.Span.EventStream {
 
         if isFloat {
             guard let value = Double(numStr), value.isFinite else {
-                throw .invalidNumber(at: lexer.positionAt(byteOffset: startOffset), reason: .overflow)
+                throw .invalidNumber(
+                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    reason: .overflow
+                )
             }
             return RFC_8259.Number(value, original: original)
         } else {
@@ -863,7 +941,10 @@ extension RFC_8259.Span.EventStream {
             } else if let value = Double(numStr), value.isFinite {
                 return RFC_8259.Number(value, original: original)
             } else {
-                throw .invalidNumber(at: lexer.positionAt(byteOffset: startOffset), reason: .overflow)
+                throw .invalidNumber(
+                    at: RFC_8259.Position(offset: startCursor, location: startLocation),
+                    reason: .overflow
+                )
             }
         }
     }
