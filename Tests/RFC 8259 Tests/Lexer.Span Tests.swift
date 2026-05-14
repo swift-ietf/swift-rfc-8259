@@ -1,11 +1,11 @@
 /// Lexer.Span Tests.swift
 /// swift-rfc-8259
 ///
-/// Tests for the Span-specialised cursor + parser introduced in
-/// Phase A1 of `parse-performance-architecture.md`. The internal
-/// types live at `RFC_8259.Span.Lexer` and `RFC_8259.Span.Parser`;
-/// the public entry points (`RFC_8259.decode`, `RFC_8259.parse`)
-/// dispatch to them for contiguous-bytes inputs.
+/// Tests for the wholesale parser introduced in Phase A1 of
+/// `parse-performance-architecture.md`. The internal parser lives at
+/// `RFC_8259.Decode.Implementation` (backed by `Lexer.Scanner` from
+/// swift-lexer-primitives); the public entry points (`RFC_8259.decode`,
+/// `RFC_8259.parse`) dispatch to it for contiguous-bytes inputs.
 
 import Testing
 @testable import RFC_8259

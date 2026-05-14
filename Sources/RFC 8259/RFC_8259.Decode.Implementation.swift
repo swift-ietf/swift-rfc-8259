@@ -1,7 +1,7 @@
-/// RFC_8259.Parser.Span.swift
+/// RFC_8259.Decode.Implementation.swift
 /// swift-rfc-8259
 ///
-/// Span-specialized JSON parser for the contiguous-bytes case.
+/// Wholesale JSON parser for the contiguous-bytes case.
 ///
 /// Phase A1 of the Tier-4 parse-performance work
 /// (`swift-foundations/swift-json/Research/parse-performance-architecture.md`),
@@ -13,10 +13,6 @@
 /// fork. Emits the same `RFC_8259.Value` / `RFC_8259.Token` shape as
 /// the existing generic `RFC_8259.Parser<Input>` so the public API is
 /// preserved byte-for-byte.
-///
-/// File name preserves the architecture doc's wording — the type
-/// itself lives at `RFC_8259.Span.Parser`, see the namespace note in
-/// `RFC_8259.Lexer.Span.swift`.
 ///
 /// ## Storage-shape note
 ///
@@ -34,8 +30,8 @@
 public import Lexer_Primitives
 @_spi(Unsafe) public import Array_Primitives
 
-extension RFC_8259.Span {
-    /// Span-specialised JSON parser.
+extension RFC_8259.Decode {
+    /// Wholesale JSON parser.
     ///
     /// `~Copyable & ~Escapable` per the cursor it owns
     /// (`RFC_8259.Span.Lexer`). Drives the lexer + value-tree
@@ -47,7 +43,7 @@ extension RFC_8259.Span {
     /// is the only call site from `RFC_8259.Decode`.
     @safe
     @usableFromInline
-    internal struct Parser: ~Copyable, ~Escapable {
+    internal struct Implementation: ~Copyable, ~Escapable {
         @usableFromInline
         internal var lexer: RFC_8259.Span.Lexer
 
@@ -82,14 +78,14 @@ extension RFC_8259.Span {
 
 // MARK: - Entry point
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     /// Parses the span and returns a JSON value.
     @inlinable
     internal static func parse(
         _ bytes: borrowing Swift.Span<UInt8>,
         maxDepth: Int
     ) throws(RFC_8259.Error) -> RFC_8259.Value {
-        var parser = RFC_8259.Span.Parser(bytes, maxDepth: maxDepth)
+        var parser = RFC_8259.Decode.Implementation(bytes, maxDepth: maxDepth)
         let value = try parser.parse()
         return value
     }
@@ -112,7 +108,7 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Current-position helper
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     /// Builds `RFC_8259.Position` from the lexer's current cursor.
     /// Line:column is computed by source scan via
     /// ``Lexer/Scanner/location(at:)`` — O(N) at the throw site,
@@ -137,7 +133,7 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Value parsing
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     /// Parses a JSON value.
     ///
     /// Reads the next non-whitespace byte and dispatches by ASCII byte
@@ -193,7 +189,7 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Array parsing (called after `[` is consumed)
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func parseArray() throws(RFC_8259.Error) -> RFC_8259.Value {
@@ -241,7 +237,7 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Object parsing (called after `{` is consumed)
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     @inlinable
     @_lifetime(self: copy self)
     internal mutating func parseObject() throws(RFC_8259.Error) -> RFC_8259.Value {
@@ -325,7 +321,7 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Whitespace
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     /// Skips whitespace bytes.
     ///
     /// Uses an inlined four-way comparison against the four JSON
@@ -363,7 +359,7 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Literals
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     /// Expects the given literal bytes (called after the first byte
     /// has been peeked but NOT advanced).
     ///
@@ -398,11 +394,11 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Strings (returns String directly — no Token wrapping)
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     /// Lexes a JSON string (after the leading `"` has been peeked but
     /// NOT advanced). Returns the decoded `String` directly. The Token
     /// wrapping that the generic lexer produces is bypassed — the
-    /// Parser.Span doesn't need it.
+    /// Implementation doesn't need it.
     ///
     /// Position computation is deferred to error sites only — the
     /// hot path doesn't materialise `RFC_8259.Position` per string.
@@ -560,7 +556,7 @@ extension RFC_8259.Span.Parser {
 
 // MARK: - Numbers
 
-extension RFC_8259.Span.Parser {
+extension RFC_8259.Decode.Implementation {
     /// Lexes a JSON number (called after the first byte has been
     /// peeked but NOT advanced). Returns `RFC_8259.Number` directly —
     /// no Token wrapping.

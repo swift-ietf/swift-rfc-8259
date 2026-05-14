@@ -9,7 +9,7 @@
 /// - `Tokens` = ``RFC_8259/Pull/Tokens`` (the JSON token witness).
 /// - `Value` = ``RFC_8259/Value`` (the JSON value tree).
 /// - `consume(bytes:limit:)` — the wholesale fast-path. Delegates to
-///   ``RFC_8259/Span/Parser/parse(_:maxDepth:)`` over the same bytes.
+///   ``RFC_8259/Decode/Implementation/parse(_:maxDepth:)`` over the same bytes.
 ///   Per A0 §9.3, this short-circuit is the BINDING constraint that
 ///   makes the §4.3 default-fallback non-regressing.
 /// - `build(events:)` — the slow-path. Walks the event stream and
@@ -22,13 +22,13 @@ extension RFC_8259.Pull {
         public typealias Tokens = RFC_8259.Pull.Tokens
         public typealias Value = RFC_8259.Value
 
-        /// Wholesale fast-path — delegates to the Span parser.
+        /// Wholesale fast-path — delegates to `RFC_8259.Decode.Implementation`.
         @inlinable
         public static func consume(
             bytes: Swift.Span<UInt8>,
             limit: Int
         ) throws(RFC_8259.Error) -> RFC_8259.Value {
-            try RFC_8259.Span.Parser.parse(bytes, maxDepth: limit)
+            try RFC_8259.Decode.Implementation.parse(bytes, maxDepth: limit)
         }
 
         /// Slow-path — drives the event stream to rebuild the tree.

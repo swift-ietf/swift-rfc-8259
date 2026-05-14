@@ -560,7 +560,7 @@ struct SpanEventStreamTests {
             let viaStream = try Lexer.Pull.Assemble.from(&stream, strategy: RFC_8259.Pull.Assemble.self)
             #expect(stream.isPristine == false)
 
-            let viaParser = try RFC_8259.Span.Parser.parse(span, maxDepth: 512)
+            let viaParser = try RFC_8259.Decode.Implementation.parse(span, maxDepth: 512)
             #expect(viaStream == viaParser)
         }
     }

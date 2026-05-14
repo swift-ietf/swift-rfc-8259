@@ -15,7 +15,7 @@
 ///   depth-delta semantics, and per-kind value-skip logic.
 /// - ``RFC_8259/Pull/Assemble`` — implements
 ///   ``Lexer/Pull/Assemble/Strategy``. Provides the wholesale
-///   fast-path (via ``RFC_8259/Span/Parser/parse(_:limit:)``) and
+///   fast-path (via ``RFC_8259/Decode/Implementation/parse(_:maxDepth:)``) and
 ///   the slow-path event-walking that builds ``RFC_8259/Value``.
 ///
 /// Direct use: consumers driving JSON parsing should construct

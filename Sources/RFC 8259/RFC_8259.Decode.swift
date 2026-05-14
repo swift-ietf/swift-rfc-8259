@@ -31,7 +31,7 @@ extension RFC_8259 {
 extension RFC_8259.Decode {
     /// Decodes a byte collection to a JSON value.
     ///
-    /// Dispatches to the Span-specialised fast path when the collection
+    /// Dispatches to the wholesale fast path when the collection
     /// exposes contiguous storage (the case for `[UInt8]` /
     /// `ContiguousArray<UInt8>` / `ArraySlice<UInt8>` etc.). Falls back
     /// to the generic `RFC_8259.Parser<Input.Buffer>` slow path for
@@ -58,12 +58,12 @@ extension RFC_8259.Decode {
             (buffer: UnsafeBufferPointer<UInt8>) -> RFC_8259.Value? in
             let span = buffer.span
             do {
-                return try RFC_8259.Span.Parser.parse(span, maxDepth: maxDepth)
+                return try RFC_8259.Decode.Implementation.parse(span, maxDepth: maxDepth)
             } catch let error as RFC_8259.Error {
                 parserError = error
                 return nil
             } catch {
-                // Unreachable — Parser.Span.parse uses typed throws.
+                // Unreachable — Decode.Implementation.parse uses typed throws.
                 parserError = nil
                 return nil
             }
@@ -83,7 +83,7 @@ extension RFC_8259.Decode {
 
     /// Decodes a string to a JSON value.
     ///
-    /// Dispatches to the Span-specialised fast path when the string's
+    /// Dispatches to the wholesale fast path when the string's
     /// UTF-8 view exposes contiguous storage (the case for native Swift
     /// `String` and — on Apple platforms with macOS 26 / iOS 26 — for
     /// bridged `NSString` per the A0 probe in
@@ -105,12 +105,12 @@ extension RFC_8259.Decode {
             (buffer: UnsafeBufferPointer<UInt8>) -> RFC_8259.Value? in
             let span = buffer.span
             do {
-                return try RFC_8259.Span.Parser.parse(span, maxDepth: maxDepth)
+                return try RFC_8259.Decode.Implementation.parse(span, maxDepth: maxDepth)
             } catch let error as RFC_8259.Error {
                 parserError = error
                 return nil
             } catch {
-                // Unreachable — Parser.Span.parse uses typed throws.
+                // Unreachable — Decode.Implementation.parse uses typed throws.
                 parserError = nil
                 return nil
             }
@@ -143,12 +143,12 @@ extension RFC_8259.Decode {
             (buffer: UnsafeBufferPointer<UInt8>) -> RFC_8259.Value? in
             let span = buffer.span
             do {
-                return try RFC_8259.Span.Parser.parse(span, maxDepth: maxDepth)
+                return try RFC_8259.Decode.Implementation.parse(span, maxDepth: maxDepth)
             } catch let error as RFC_8259.Error {
                 parserError = error
                 return nil
             } catch {
-                // Unreachable — Parser.Span.parse uses typed throws.
+                // Unreachable — Decode.Implementation.parse uses typed throws.
                 parserError = nil
                 return nil
             }
