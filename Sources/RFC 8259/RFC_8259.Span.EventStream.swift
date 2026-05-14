@@ -646,15 +646,13 @@ extension RFC_8259.Span.EventStream {
     @_lifetime(self: copy self)
     internal mutating func skipWhitespace() {
         while let byte = lexer.scanner.peek() {
+            // Single-arm switch over the 4 ASCII whitespace bytes
+            // RFC 8259 §2 admits — with no tracker maintained on the
+            // hot path, CR and LF need no special handling beyond
+            // individual byte consumption.
             switch byte {
-            case 0x20, 0x09, 0x0A:
+            case 0x20, 0x09, 0x0A, 0x0D:
                 lexer.scanner.advance()
-            case 0x0D:
-                lexer.scanner.advance()
-                // CRLF: consume the LF as a single logical newline.
-                if lexer.scanner.peek() == 0x0A {
-                    lexer.scanner.advance()
-                }
             default:
                 return
             }

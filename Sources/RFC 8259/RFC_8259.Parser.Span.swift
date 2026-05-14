@@ -348,15 +348,12 @@ extension RFC_8259.Span.Parser {
         while let byte = lexer.scanner.peek() {
             // Inline the whitespace check: space (0x20), tab (0x09),
             // LF (0x0A), CR (0x0D). RFC 8259 §2.
+            // Single-arm switch: with no tracker maintained, CR and LF
+            // need no special handling — CRLF is consumed as two
+            // individual whitespace bytes, identical to space-tab.
             switch byte {
-            case 0x20, 0x09, 0x0A:
+            case 0x20, 0x09, 0x0A, 0x0D:
                 lexer.scanner.advance()
-            case 0x0D:
-                lexer.scanner.advance()
-                // CRLF: consume the LF as a single logical newline.
-                if lexer.scanner.peek() == 0x0A {
-                    lexer.scanner.advance()
-                }
             default:
                 return
             }
