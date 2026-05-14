@@ -134,17 +134,47 @@ extension RFC_8259.Span.EventStream {
     /// parser path. Equivalent to `RFC_8259.Span.Parser.parse(_:)` over
     /// the bytes the stream borrows.
     ///
-    /// Caller MUST verify `isUnforkedAtPositionZero == true` before
-    /// invoking this — calling on a stream that has already advanced
-    /// produces undefined behaviour (the parser would re-parse from
-    /// position 0 regardless of where the stream actually is).
+    /// ## Contract
     ///
-    /// Public so that `JSON.Assemble.from(_:)` can route the §4.3
-    /// default-fallback short-circuit through the existing tree
-    /// builder without paying the event-pull-then-rebuild cost
-    /// measured at 4.48× in the A0 spike. The naming pre-empts misuse:
-    /// "consume as parse value" makes clear the cursor is left fully
-    /// advanced after the call.
+    /// Caller MUST verify `isUnforkedAtPositionZero == true` before
+    /// invoking this. Calling on a stream that has already advanced
+    /// produces undefined behaviour: the parser re-parses from position
+    /// 0 regardless of where the stream actually is, returning a value
+    /// inconsistent with the caller's expected position. The cursor is
+    /// left FULLY ADVANCED (position set to `totalCount`) after the
+    /// call; subsequent `next()` / `currentString()` / `currentNumber()`
+    /// will return `nil` / throw end-of-input.
+    ///
+    /// ## Why public, not SPI
+    ///
+    /// This primitive is internal coupling between `swift-rfc-8259` and
+    /// `swift-json`'s `JSON.Assemble.from(_:)` to route the streaming-
+    /// deserialize-comparative-analysis v1.0.1 §4.3 default-fallback
+    /// short-circuit through the existing tree builder without paying
+    /// the event-pull-then-rebuild cost measured at 4.48× in the A0
+    /// spike (see `Experiments/streaming-deserialize-a0-feasibility/`).
+    ///
+    /// The SPI form (`@_spi(StreamingDeserialize)`) was evaluated and
+    /// REJECTED at A1: `@_spi` does NOT compose with `@inlinable` at
+    /// the cross-module consumer site. Verbatim Swift 6.3.2 compiler
+    /// error: *"instance method 'consumeAsParseValue()' cannot be used
+    /// in an '@inlinable' function because it is an SPI imported from
+    /// 'RFC_8259'"*. The consumer (`JSON.Assemble.from`) MUST be
+    /// `@inlinable` to allow the default-fallback short-circuit chain
+    /// to inline at every opt-out conformer site; without inlining,
+    /// the protocol-dispatch chain adds witness-table overhead and the
+    /// 5.3 % noise-floor non-regression measurement at A2 axis (b)
+    /// would widen.
+    ///
+    /// The naming pre-empts misuse: "consume as parse value" makes
+    /// clear the cursor is left fully advanced after the call.
+    ///
+    /// External consumers should NOT need this primitive directly; if
+    /// a future consumer thinks they do, they probably want the public
+    /// `RFC_8259.parse(_:)` API instead. The primitive exists only
+    /// because the §4.3 short-circuit needs a tightly-coupled fast path
+    /// between `JSON.Span.EventStream`'s position-0 state and the
+    /// existing Span.Parser surface.
     @inlinable
     @_lifetime(self: copy self)
     public mutating func consumeAsParseValue() throws(RFC_8259.Error) -> RFC_8259.Value {
