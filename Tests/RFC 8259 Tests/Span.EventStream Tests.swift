@@ -9,7 +9,7 @@
 /// Coverage:
 /// - All 11 non-payload `Token.Kind` cases emit correctly via `next()`
 /// - `currentString()` / `currentNumber()` decode payloads in order
-/// - `isUnforkedAtPositionZero` state transitions correctly
+/// - `isPristine` state transitions correctly
 /// - `skipValue()` walks balanced across nested containers
 /// - Surrogate-pair handling, escape sequences, depth tracking
 /// - Malformed inputs throw `RFC_8259.Error` appropriately
@@ -27,7 +27,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("{}".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .objectStart)
             #expect(try stream.next() == .objectEnd)
             #expect(try stream.next() == nil)
@@ -39,7 +39,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("[]".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .arrayStart)
             #expect(try stream.next() == .arrayEnd)
             #expect(try stream.next() == nil)
@@ -51,7 +51,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#"{"a":1,"b":2}"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .objectStart)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "a")
@@ -73,7 +73,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("null".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .null)
             #expect(try stream.next() == nil)
         }
@@ -84,7 +84,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("true".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .`true`)
         }
     }
@@ -94,7 +94,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("false".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .`false`)
         }
     }
@@ -106,7 +106,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#""hello""#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "hello")
         }
@@ -117,7 +117,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#""a\nb\tc\"d""#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "a\nb\tc\"d")
         }
@@ -128,7 +128,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#""é""#.utf8) // é
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "é")
         }
@@ -140,7 +140,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#""😀""#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "😀")
         }
@@ -153,7 +153,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("42".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().int64 == 42)
         }
@@ -164,7 +164,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("-123".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().int64 == -123)
         }
@@ -175,7 +175,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("3.14".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().double == 3.14)
         }
@@ -186,45 +186,45 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("1.5e10".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().double == 1.5e10)
         }
     }
 
-    // MARK: - isUnforkedAtPositionZero
+    // MARK: - isPristine
 
     @Test
-    func `isUnforkedAtPositionZero true at init`() throws {
+    func `isPristine true at init`() throws {
         let bytes: [UInt8] = Swift.Array(#"{"a":1}"#.utf8)
         bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) in
             let span = buf.span
-            let stream = RFC_8259.Span.EventStream(span)
-            #expect(stream.isUnforkedAtPositionZero == true)
+            let stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            #expect(stream.isPristine == true)
         }
     }
 
     @Test
-    func `isUnforkedAtPositionZero false after next`() throws {
+    func `isPristine false after next`() throws {
         let bytes: [UInt8] = Swift.Array(#"{"a":1}"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            #expect(stream.isUnforkedAtPositionZero == true)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            #expect(stream.isPristine == true)
             _ = try stream.next()
-            #expect(stream.isUnforkedAtPositionZero == false)
+            #expect(stream.isPristine == false)
         }
     }
 
     @Test
-    func `isUnforkedAtPositionZero false after skipValue`() throws {
+    func `isPristine false after skipValue`() throws {
         let bytes: [UInt8] = Swift.Array(#"{"a":1}"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            #expect(stream.isUnforkedAtPositionZero == true)
-            try stream.skipValue()
-            #expect(stream.isUnforkedAtPositionZero == false)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            #expect(stream.isPristine == true)
+            try stream.skip()
+            #expect(stream.isPristine == false)
         }
     }
 
@@ -235,8 +235,8 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#""skip me",42"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            try stream.skipValue()
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            try stream.skip()
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().int64 == 42)
@@ -248,8 +248,8 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#"3.14,"after""#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            try stream.skipValue()
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            try stream.skip()
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "after")
@@ -261,12 +261,12 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#"null,true,false,42"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            try stream.skipValue() // null
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            try stream.skip() // null
             #expect(try stream.next() == .comma)
-            try stream.skipValue() // true
+            try stream.skip() // true
             #expect(try stream.next() == .comma)
-            try stream.skipValue() // false
+            try stream.skip() // false
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().int64 == 42)
@@ -278,8 +278,8 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#"{"nested":{"a":1,"b":[1,2,3]}},42"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            try stream.skipValue() // skips the whole {...}
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            try stream.skip() // skips the whole {...}
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().int64 == 42)
@@ -293,7 +293,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#"{"a":1,"b":2,"c":3},42"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .objectStart)
             // Read first key/value pair.
             #expect(try stream.next() == .string)
@@ -312,12 +312,12 @@ struct SpanEventStreamTests {
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "b")
             #expect(try stream.next() == .colon)
-            try stream.skipValue() // skips "2"
+            try stream.skip() // skips "2"
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "c")
             #expect(try stream.next() == .colon)
-            try stream.skipValue() // skips "3"
+            try stream.skip() // skips "3"
             #expect(try stream.next() == .objectEnd)
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .number)
@@ -330,8 +330,8 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#"[[1,2],[3,[4,5]]],99"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            try stream.skipValue() // the whole outer array
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            try stream.skip() // the whole outer array
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().int64 == 99)
@@ -343,8 +343,8 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#""skip \"this\" too",42"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            try stream.skipValue()
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            try stream.skip()
             #expect(try stream.next() == .comma)
             #expect(try stream.next() == .number)
             #expect(try stream.currentNumber().int64 == 42)
@@ -358,7 +358,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("[[[[[]]]]]".utf8)
         bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span, maxDepth: 3)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span, limit: 3)
             do {
                 _ = try stream.next() // depth 1
                 _ = try stream.next() // depth 2
@@ -384,7 +384,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("nulX".utf8)
         bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             do {
                 _ = try stream.next()
                 Issue.record("Expected error")
@@ -406,7 +406,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("007".utf8)
         bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             do {
                 _ = try stream.next()
                 _ = try stream.currentNumber()
@@ -428,7 +428,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#""unterminated"#.utf8)
         bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             do {
                 _ = try stream.next()
                 _ = try stream.currentString()
@@ -450,7 +450,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("@".utf8)
         bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             do {
                 _ = try stream.next()
                 Issue.record("Expected unexpectedToken error")
@@ -477,7 +477,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("   \n\t  null".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .null)
         }
     }
@@ -487,7 +487,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(#"{   "key"   :   42   }"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == .objectStart)
             #expect(try stream.next() == .string)
             #expect(try stream.currentString() == "key")
@@ -505,7 +505,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = []
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == nil)
         }
     }
@@ -515,7 +515,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array("   \n   ".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             #expect(try stream.next() == nil)
         }
     }
@@ -530,7 +530,7 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = [0xFF]
         bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             do {
                 _ = try stream.next()
                 Issue.record("Expected unexpectedToken")
@@ -555,10 +555,10 @@ struct SpanEventStreamTests {
         let bytes: [UInt8] = Swift.Array(input.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            #expect(stream.isUnforkedAtPositionZero == true)
-            let viaStream = try stream.consumeAsParseValue()
-            #expect(stream.isUnforkedAtPositionZero == false)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            #expect(stream.isPristine == true)
+            let viaStream = try Lexer.Pull.Assemble.from(&stream, strategy: RFC_8259.Pull.Assemble.self)
+            #expect(stream.isPristine == false)
 
             let viaParser = try RFC_8259.Span.Parser.parse(span, maxDepth: 512)
             #expect(viaStream == viaParser)

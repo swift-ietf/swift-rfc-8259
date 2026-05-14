@@ -25,12 +25,12 @@ struct SpanAssembleTests {
         let bytes: [UInt8] = Swift.Array(#"{"name":"alice","age":30,"tags":["x","y"]}"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            let unforkedBefore: Bool = stream.isUnforkedAtPositionZero
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            let unforkedBefore: Bool = stream.isPristine
             #expect(unforkedBefore)
-            let value = try RFC_8259.Span.Assemble.from(&stream)
+            let value = try Lexer.Pull.Assemble.from(&stream, strategy: RFC_8259.Pull.Assemble.self)
             // The short-circuit fully consumed the stream.
-            let unforkedAfter: Bool = stream.isUnforkedAtPositionZero
+            let unforkedAfter: Bool = stream.isPristine
             #expect(!unforkedAfter)
             // Verify object structure.
             #expect(value.object != nil)
@@ -43,12 +43,12 @@ struct SpanAssembleTests {
     @Test
     func `Assemble.from slow path after partial advance rebuilds via events`() throws {
         // Pull one event manually before calling Assemble.from so that
-        // isUnforkedAtPositionZero becomes false; the helper then routes
+        // isPristine becomes false; the helper then routes
         // through the slow event-pull-and-rebuild path.
         let bytes: [UInt8] = Swift.Array(#"[1,2,3]"#.utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
             // Pull and discard the leading `.arrayStart` so the slow
             // path picks up from inside the array. Note: this leaves
             // the assembler to build a partial value — we don't expect
@@ -56,12 +56,12 @@ struct SpanAssembleTests {
             // reconstructs starting at the next token (the number 1).
             let firstToken = try stream.next()
             #expect(firstToken == .arrayStart)
-            let unforkedAfterAdvance: Bool = stream.isUnforkedAtPositionZero
+            let unforkedAfterAdvance: Bool = stream.isPristine
             #expect(!unforkedAfterAdvance)
             // buildFromEvents pulls the next token (.number) and
             // returns just that value — confirms the slow path is
             // exercised and produces a coherent partial result.
-            let value = try RFC_8259.Span.Assemble.from(&stream)
+            let value = try Lexer.Pull.Assemble.from(&stream, strategy: RFC_8259.Pull.Assemble.self)
             #expect(value.number?.int64 == 1)
         }
     }
@@ -71,8 +71,8 @@ struct SpanAssembleTests {
         let bytes: [UInt8] = Swift.Array("null".utf8)
         try bytes.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<UInt8>) throws(RFC_8259.Error) in
             let span = buf.span
-            var stream = RFC_8259.Span.EventStream(span)
-            let value = try RFC_8259.Span.Assemble.from(&stream)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            let value = try Lexer.Pull.Assemble.from(&stream, strategy: RFC_8259.Pull.Assemble.self)
             #expect(value.isNull)
         }
     }
@@ -89,8 +89,8 @@ struct SpanAssembleTests {
             // Direct parse.
             let direct = try RFC_8259.Span.Parser.parse(span, maxDepth: 512)
             // Via Assemble (FAST PATH).
-            var stream = RFC_8259.Span.EventStream(span)
-            let assembled = try RFC_8259.Span.Assemble.from(&stream)
+            var stream = Lexer.Pull.Stream<RFC_8259.Pull.Tokens>(span)
+            let assembled = try Lexer.Pull.Assemble.from(&stream, strategy: RFC_8259.Pull.Assemble.self)
             #expect(direct == assembled)
         }
     }
