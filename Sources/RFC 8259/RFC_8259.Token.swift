@@ -1,9 +1,7 @@
 /// RFC_8259.Token.swift
 /// swift-rfc-8259
 ///
-/// Lexer token types for JSON parsing
-
-import Parser_Primitives
+/// JSON token vocabulary (RFC 8259 §§4–7).
 
 extension RFC_8259 {
     /// Tokens produced by the JSON lexer.

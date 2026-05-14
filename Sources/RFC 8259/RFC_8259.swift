@@ -1,28 +1,18 @@
 /// RFC 8259: The JavaScript Object Notation (JSON) Data Interchange Format
 ///
-/// This module implements JSON parsing and encoding as specified in RFC 8259.
-/// JSON provides a lightweight text format for data interchange that is
-/// language-independent and human-readable.
+/// This module encodes the RFC 8259 specification as Swift types:
 ///
-/// ## Key Concepts
+/// - The JSON value model (``RFC_8259/Value``, ``RFC_8259/Object``,
+///   ``RFC_8259/Array``, ``RFC_8259/Number``).
+/// - The token vocabulary (``RFC_8259/Token`` and ``RFC_8259/Token/Kind``).
+/// - The error vocabulary (``RFC_8259/Error``).
+/// - The token witness for the L1 ``Lexer/Pull`` cohort
+///   (``RFC_8259/Pull/Tokens``).
 ///
-/// - **JSON Text**: A sequence of tokens representing structured data
-/// - **Value Types**: null, boolean, number, string, array, object
-/// - **Encoding**: Strictly UTF-8 as required by RFC 8259
-///
-/// ## Example Usage
-///
-/// ```swift
-/// // Parse JSON
-/// let value = try RFC_8259.decode("{\"name\": \"John\", \"age\": 30}")
-///
-/// // Access values
-/// print(value["name"]?.string)  // Optional("John")
-/// print(value["age"]?.number?.int64Value)  // Optional(30)
-///
-/// // Encode JSON
-/// let bytes = value.encode()
-/// ```
+/// The parsing and encoding implementation lives at L3 in swift-json,
+/// which conforms ``RFC_8259/Value`` to ``Coder_Primitives/Codable``
+/// via `JSON.Coder`. Consumers should depend on swift-json for the
+/// full bidirectional surface.
 ///
 /// ## RFC 8259 Compliance
 ///
