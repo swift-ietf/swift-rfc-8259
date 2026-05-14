@@ -20,16 +20,22 @@
 /// recognisability.
 
 extension RFC_8259 {
-    /// Internal namespace for Span-specialized variants.
+    /// Namespace for Span-specialised variants.
     ///
     /// `RFC_8259.Span.Lexer` and `RFC_8259.Span.Parser` are the
-    /// Span-backed implementations of the public `RFC_8259.Lexer` /
-    /// `RFC_8259.Parser` generic types. The public generic types
-    /// remain the slow path for non-contiguous inputs; the Span
-    /// variants are the fast path engaged by the `RFC_8259.Decode`
-    /// dispatch fork on contiguous storage.
-    @usableFromInline
-    internal enum Span {}
+    /// internal Span-backed implementations of the public
+    /// `RFC_8259.Lexer` / `RFC_8259.Parser` generic types. The public
+    /// generic types remain the slow path for non-contiguous inputs;
+    /// the Span variants are the fast path engaged by the
+    /// `RFC_8259.Decode` dispatch fork on contiguous storage.
+    ///
+    /// `RFC_8259.Span.EventStream` is the public Span-backed event
+    /// cursor introduced by Phase A1 of the streaming-deserialize
+    /// arc (per `streaming-json-deserialize-comparative-analysis.md`
+    /// v1.0.1). Public so that consumers may construct it from
+    /// `Swift.Span<UInt8>` at their own call site; the namespace
+    /// itself is now `public` rather than `internal`.
+    public enum Span {}
 }
 
 extension RFC_8259.Span {
