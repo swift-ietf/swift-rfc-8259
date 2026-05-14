@@ -1,24 +1,24 @@
-/// Span.Assemble Tests.swift
+/// Pull.Assemble Tests.swift
 /// swift-rfc-8259
 ///
-/// Tests for `RFC_8259.Span.Assemble` — the event-stream-to-Value
-/// assembler re-homed from `swift-json/JSON.Assemble` per the
-/// streaming-deserialize placement audit's Ticket T-2.
+/// Tests for `RFC_8259.Pull.Assemble` — the JSON assemble strategy for
+/// the L1 ``Lexer/Pull/Assemble`` cohort.
 ///
 /// Coverage:
-/// - FAST PATH: `from(_:)` short-circuits through
-///   `events.consumeAsParseValue()` when the stream is unforked at
-///   position 0.
-/// - SLOW PATH: `buildFromEvents(_:)` rebuilds the tree by driving
-///   the event stream forward after a partial advance.
-/// - Round-trip: `Assemble.from` produces the same `RFC_8259.Value`
-///   as the direct `RFC_8259.Decode.Implementation.parse(_:)` path.
+/// - FAST PATH: `Lexer.Pull.Assemble.from(_:strategy:)` short-circuits
+///   through `RFC_8259.Pull.Assemble.consume(bytes:limit:)` (which
+///   delegates to `RFC_8259.Decode.Implementation.parse`) when the
+///   stream is pristine.
+/// - SLOW PATH: `RFC_8259.Pull.Assemble.build(events:)` rebuilds the
+///   tree by driving the event stream forward after a partial advance.
+/// - Round-trip: the assembled value equals the direct
+///   `RFC_8259.Decode.Implementation.parse(_:)` value on the same bytes.
 
 import Testing
 @testable import RFC_8259
 
-@Suite("Span.Assemble Tests")
-struct SpanAssembleTests {
+@Suite("Pull.Assemble Tests")
+struct PullAssembleTests {
 
     @Test
     func `Assemble.from short-circuits at position 0 and returns parsed value`() throws {

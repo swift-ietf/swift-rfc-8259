@@ -1,24 +1,23 @@
-/// Span.EventStream Tests.swift
+/// Pull.Stream Tests.swift
 /// swift-rfc-8259
 ///
-/// Tests for `RFC_8259.Span.EventStream` — the pull-driven event
-/// cursor introduced by Phase A1 of the streaming-deserialize arc
-/// (`swift-institute/Research/streaming-json-deserialize-comparative-analysis.md`
-/// v1.0.1, Option B / pattern γ).
+/// Tests for `Lexer.Pull.Stream<RFC_8259.Pull.Tokens>` — the JSON
+/// specialisation of the L1 pull-driven event cursor (case-(c) C1
+/// pull-down from `RFC_8259.Span.EventStream`).
 ///
 /// Coverage:
 /// - All 11 non-payload `Token.Kind` cases emit correctly via `next()`
 /// - `currentString()` / `currentNumber()` decode payloads in order
 /// - `isPristine` state transitions correctly
-/// - `skipValue()` walks balanced across nested containers
+/// - `skip()` walks balanced across nested containers
 /// - Surrogate-pair handling, escape sequences, depth tracking
 /// - Malformed inputs throw `RFC_8259.Error` appropriately
 
 import Testing
 @testable import RFC_8259
 
-@Suite("Span.EventStream Tests")
-struct SpanEventStreamTests {
+@Suite("Pull.Stream Tests")
+struct PullStreamTests {
 
     // MARK: - Token.Kind emission
 
