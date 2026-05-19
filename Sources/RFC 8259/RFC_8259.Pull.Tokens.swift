@@ -61,57 +61,59 @@ extension RFC_8259.Pull {
             limit: Int
         ) throws(Error) -> Kind? {
             skip(whitespace: &scanner)
-            guard let byte = scanner.peek() else { return nil }
+            // Type-up: lift to ASCII.Code at the peek boundary so cases match
+            // ASCII.Code constants directly (JSON tokens are strict ASCII).
+            guard let code: ASCII.Code = scanner.peek() else { return nil }
 
-            switch byte {
-            case UInt8.ascii.leftBrace:              // {
+            switch code {
+            case .leftBrace:              // {
                 scanner.advance()
                 depth &+= 1
                 if depth > limit {
                     throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
                 }
                 return .objectStart
-            case UInt8.ascii.rightBrace:             // }
+            case .rightBrace:             // }
                 scanner.advance()
                 depth &-= 1
                 return .objectEnd
-            case UInt8.ascii.leftBracket:            // [
+            case .leftBracket:            // [
                 scanner.advance()
                 depth &+= 1
                 if depth > limit {
                     throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
                 }
                 return .arrayStart
-            case UInt8.ascii.rightBracket:           // ]
+            case .rightBracket:           // ]
                 scanner.advance()
                 depth &-= 1
                 return .arrayEnd
-            case UInt8.ascii.colon:                  // :
+            case .colon:                  // :
                 scanner.advance()
                 return .colon
-            case UInt8.ascii.comma:                  // ,
+            case .comma:                  // ,
                 scanner.advance()
                 return .comma
-            case UInt8.ascii.quotationMark:          // "
+            case .quotationMark:          // "
                 // Token start — payload deferred to currentString().
                 return .string
-            case UInt8.ascii.n:                      // null
-                try expectLiteral(scanner: &scanner, [.ascii.n, .ascii.u, .ascii.l, .ascii.l])
+            case .n:                      // null
+                try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
                 return .null
-            case UInt8.ascii.t:                      // true
-                try expectLiteral(scanner: &scanner, [.ascii.t, .ascii.r, .ascii.u, .ascii.e])
+            case .t:                      // true
+                try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
                 return .`true`
-            case UInt8.ascii.f:                      // false
-                try expectLiteral(scanner: &scanner, [.ascii.f, .ascii.a, .ascii.l, .ascii.s, .ascii.e])
+            case .f:                      // false
+                try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
                 return .`false`
-            case UInt8.ascii.hyphen,                 // -
-                 UInt8.ascii.`0`...UInt8.ascii.`9`:  // 0-9
+            case .hyphen,                 // -
+                 .`0`...ASCII.Code.`9`:   // 0-9
                 // Token start — payload deferred to currentNumber().
                 return .number
             default:
                 throw .unexpectedToken(
                     at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(byte),
+                    found: .unknown(code),
                     expected: .value
                 )
             }
@@ -124,30 +126,31 @@ extension RFC_8259.Pull {
             limit: Int
         ) throws(Error) {
             skip(whitespace: &scanner)
-            guard let byte = scanner.peek() else { return }
+            // Type-up: lift to ASCII.Code at the peek boundary.
+            guard let code: ASCII.Code = scanner.peek() else { return }
 
-            switch byte {
-            case UInt8.ascii.quotationMark:          // "
+            switch code {
+            case .quotationMark:          // "
                 try skipString(scanner: &scanner)
-            case UInt8.ascii.hyphen,                 // -
-                 UInt8.ascii.`0`...UInt8.ascii.`9`:  // 0-9
+            case .hyphen,                 // -
+                 .`0`...ASCII.Code.`9`:   // 0-9
                 try skipNumber(scanner: &scanner)
-            case UInt8.ascii.n:
-                try expectLiteral(scanner: &scanner, [.ascii.n, .ascii.u, .ascii.l, .ascii.l])
-            case UInt8.ascii.t:
-                try expectLiteral(scanner: &scanner, [.ascii.t, .ascii.r, .ascii.u, .ascii.e])
-            case UInt8.ascii.f:
-                try expectLiteral(scanner: &scanner, [.ascii.f, .ascii.a, .ascii.l, .ascii.s, .ascii.e])
-            case UInt8.ascii.leftBrace,              // {
-                 UInt8.ascii.leftBracket:            // [
+            case .n:
+                try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
+            case .t:
+                try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
+            case .f:
+                try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
+            case .leftBrace,              // {
+                 .leftBracket:            // [
                 try skipContainerBalanced(scanner: &scanner, depth: &depth, limit: limit)
-            case UInt8.ascii.rightBrace,             // }
-                 UInt8.ascii.rightBracket:           // ]
+            case .rightBrace,             // }
+                 .rightBracket:           // ]
                 try skipContainerBodyBalanced(scanner: &scanner, depth: &depth, limit: limit)
             default:
                 throw .unexpectedToken(
                     at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(byte),
+                    found: .unknown(code),
                     expected: .value
                 )
             }
@@ -173,20 +176,20 @@ extension RFC_8259.Pull.Tokens {
     @inlinable
     internal static func expectLiteral(
         scanner: inout Lexer_Primitives.Lexer.Scanner,
-        _ expected: [UInt8]
+        _ expected: [ASCII.Code]
     ) throws(Error) {
         let startCursor = scanner.position
-        for expectedByte in expected {
-            guard let byte = scanner.peek() else {
+        for expectedCode in expected {
+            guard let code: ASCII.Code = scanner.peek() else {
                 throw .unexpectedEndOfInput(
                     at: position(at: scanner.position, scanner: scanner),
                     expected: .value
                 )
             }
-            guard byte == expectedByte else {
+            guard code == expectedCode else {
                 throw .unexpectedToken(
                     at: position(at: startCursor, scanner: scanner),
-                    found: .unknown(byte),
+                    found: .unknown(code),
                     expected: .value
                 )
             }
@@ -205,39 +208,39 @@ extension RFC_8259.Pull.Tokens {
         let startCursor = scanner.position
         scanner.advance() // Consume opening `"`.
 
-        while let byte = scanner.peek() {
-            switch byte {
-            case UInt8.ascii.quotationMark:
+        while let code: ASCII.Code = scanner.peek() {
+            switch code {
+            case .quotationMark:
                 scanner.advance()
                 return
-            case UInt8.ascii.reverseSlant:
+            case .reverseSlant:
                 scanner.advance()
-                guard let esc = scanner.peek() else {
+                guard let esc: ASCII.Code = scanner.peek() else {
                     throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .unterminated)
                 }
                 scanner.advance()
-                if esc == UInt8.ascii.u {
+                if esc == .u {
                     for _ in 0..<4 {
-                        guard let b = scanner.peek(), b.ascii.isHexDigit else {
+                        guard let b: ASCII.Code = scanner.peek(), b.isHexDigit else {
                             throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .invalidUnicodeEscape)
                         }
                         scanner.advance()
                     }
                     // Optional surrogate pair continuation.
-                    if scanner.peek() == UInt8.ascii.reverseSlant,
-                       scanner.peek(at: .one) == UInt8.ascii.u {
+                    if let next: ASCII.Code = scanner.peek(), next == .reverseSlant,
+                       let after: ASCII.Code = scanner.peek(at: .one), after == .u {
                         scanner.advance() // \
                         scanner.advance() // u
                         for _ in 0..<4 {
-                            guard let b = scanner.peek(), b.ascii.isHexDigit else {
+                            guard let b: ASCII.Code = scanner.peek(), b.isHexDigit else {
                                 throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .invalidUnicodeEscape)
                             }
                             scanner.advance()
                         }
                     }
                 }
-            case 0x00...0x1F:
-                throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .controlCharacter(byte))
+            case .nul...ASCII.Code.us:  // 0x00...0x1F (per ASCII.Code Control range)
+                throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .controlCharacter(code))
             default:
                 scanner.advance()
             }
@@ -260,58 +263,58 @@ extension RFC_8259.Pull.Tokens {
         let startCursor = scanner.position
 
         // Optional minus.
-        if scanner.peek() == UInt8.ascii.hyphen {
+        if let b: ASCII.Code = scanner.peek(), b == .hyphen {
             scanner.advance()
         }
 
         // Integer part.
-        guard let firstDigit = scanner.peek(), firstDigit.ascii.isDigit else {
+        guard let firstDigit: ASCII.Code = scanner.peek(), firstDigit.isDigit else {
             throw .invalidNumber(
                 at: position(at: startCursor, scanner: scanner),
                 reason: .missingDigits(context: "integer part")
             )
         }
-        if firstDigit == UInt8.ascii.`0` {
+        if firstDigit == .`0` {
             scanner.advance()
-            if let next = scanner.peek(), next.ascii.isDigit {
+            if let next: ASCII.Code = scanner.peek(), next.isDigit {
                 throw .invalidNumber(
                     at: position(at: startCursor, scanner: scanner),
                     reason: .leadingZeros
                 )
             }
         } else {
-            while let byte = scanner.peek(), byte.ascii.isDigit {
+            while let code: ASCII.Code = scanner.peek(), code.isDigit {
                 scanner.advance()
             }
         }
 
         // Optional fraction.
-        if scanner.peek() == UInt8.ascii.period {
+        if let b: ASCII.Code = scanner.peek(), b == .period {
             scanner.advance()
-            guard let firstFracDigit = scanner.peek(), firstFracDigit.ascii.isDigit else {
+            guard let firstFracDigit: ASCII.Code = scanner.peek(), firstFracDigit.isDigit else {
                 throw .invalidNumber(
                     at: position(at: startCursor, scanner: scanner),
                     reason: .missingDigits(context: "fraction")
                 )
             }
-            while let byte = scanner.peek(), byte.ascii.isDigit {
+            while let code: ASCII.Code = scanner.peek(), code.isDigit {
                 scanner.advance()
             }
         }
 
         // Optional exponent.
-        if let e = scanner.peek(), e == UInt8.ascii.e || e == UInt8.ascii.E {
+        if let e: ASCII.Code = scanner.peek(), e == .e || e == .E {
             scanner.advance()
-            if let sign = scanner.peek(), sign == UInt8.ascii.plusSign || sign == UInt8.ascii.hyphen {
+            if let sign: ASCII.Code = scanner.peek(), sign == .plusSign || sign == .hyphen {
                 scanner.advance()
             }
-            guard let firstExpDigit = scanner.peek(), firstExpDigit.ascii.isDigit else {
+            guard let firstExpDigit: ASCII.Code = scanner.peek(), firstExpDigit.isDigit else {
                 throw .invalidNumber(
                     at: position(at: startCursor, scanner: scanner),
                     reason: .missingDigits(context: "exponent")
                 )
             }
-            while let byte = scanner.peek(), byte.ascii.isDigit {
+            while let code: ASCII.Code = scanner.peek(), code.isDigit {
                 scanner.advance()
             }
         }
@@ -327,10 +330,8 @@ extension RFC_8259.Pull.Tokens {
         depth: inout Int,
         limit: Int
     ) throws(Error) {
-        let opener = scanner.peek()!
-        let closer: UInt8 = (opener == UInt8.ascii.leftBrace)
-            ? UInt8.ascii.rightBrace
-            : UInt8.ascii.rightBracket
+        let opener: ASCII.Code = scanner.peek()!
+        let closer: ASCII.Code = opener == .leftBrace ? .rightBrace : .rightBracket
         scanner.advance() // Consume opener.
 
         var balance = 1
@@ -343,21 +344,19 @@ extension RFC_8259.Pull.Tokens {
 
         while balance > 0 {
             skip(whitespace: &scanner)
-            guard let byte = scanner.peek() else {
+            guard let code: ASCII.Code = scanner.peek() else {
                 throw .unexpectedEndOfInput(
                     at: position(at: scanner.position, scanner: scanner),
-                    expected: (closer == UInt8.ascii.rightBrace) ? .objectEnd : .arrayEnd
+                    expected: closer == .rightBrace ? .objectEnd : .arrayEnd
                 )
             }
 
-            switch byte {
-            case UInt8.ascii.quotationMark:
+            switch code {
+            case .quotationMark:
                 try skipString(scanner: &scanner)
-            case UInt8.ascii.leftBrace, UInt8.ascii.leftBracket:
-                let inner = byte
-                let innerCloser: UInt8 = (inner == UInt8.ascii.leftBrace)
-                    ? UInt8.ascii.rightBrace
-                    : UInt8.ascii.rightBracket
+            case .leftBrace, .leftBracket:
+                let inner = code
+                let innerCloser: ASCII.Code = inner == .leftBrace ? .rightBrace : .rightBracket
                 scanner.advance()
                 depth &+= 1
                 if depth > limit {
@@ -366,13 +365,13 @@ extension RFC_8259.Pull.Tokens {
                 var innerBalance = 1
                 while innerBalance > 0 {
                     skip(whitespace: &scanner)
-                    guard let ib = scanner.peek() else {
+                    guard let ib: ASCII.Code = scanner.peek() else {
                         throw .unexpectedEndOfInput(
                             at: position(at: scanner.position, scanner: scanner),
-                            expected: (innerCloser == UInt8.ascii.rightBrace) ? .objectEnd : .arrayEnd
+                            expected: innerCloser == .rightBrace ? .objectEnd : .arrayEnd
                         )
                     }
-                    if ib == UInt8.ascii.quotationMark {
+                    if ib == .quotationMark {
                         try skipString(scanner: &scanner)
                     } else if ib == inner {
                         scanner.advance()
@@ -412,22 +411,22 @@ extension RFC_8259.Pull.Tokens {
 
         while depth >= startDepth {
             skip(whitespace: &scanner)
-            guard let byte = scanner.peek() else {
+            guard let code: ASCII.Code = scanner.peek() else {
                 throw .unexpectedEndOfInput(
                     at: position(at: scanner.position, scanner: scanner),
                     expected: .value
                 )
             }
-            switch byte {
-            case UInt8.ascii.quotationMark:
+            switch code {
+            case .quotationMark:
                 try skipString(scanner: &scanner)
-            case UInt8.ascii.leftBrace, UInt8.ascii.leftBracket:
+            case .leftBrace, .leftBracket:
                 scanner.advance()
                 depth &+= 1
                 if depth > limit {
                     throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
                 }
-            case UInt8.ascii.rightBrace, UInt8.ascii.rightBracket:
+            case .rightBrace, .rightBracket:
                 scanner.advance()
                 depth &-= 1
             default:

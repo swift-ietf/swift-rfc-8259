@@ -3,6 +3,8 @@
 ///
 /// Structured error types for JSON parsing and encoding
 
+public import Byte_Primitives
+
 extension RFC_8259 {
     /// Parse error with structured context.
     ///
@@ -22,7 +24,7 @@ extension RFC_8259 {
         case invalidString(at: Position, reason: String)
 
         /// Invalid UTF-8 byte sequence encountered.
-        case invalidUTF8(at: Position, byte: UInt8)
+        case invalidUTF8(at: Position, byte: Byte)
 
         /// Nesting depth exceeded the configured limit.
         case depthExceeded(at: Position, limit: Int)

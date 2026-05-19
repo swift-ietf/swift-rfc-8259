@@ -3,6 +3,8 @@
 ///
 /// Simplified token kind for error reporting
 
+public import ASCII_Primitives
+
 extension RFC_8259.Token {
     /// Token kind for error messages.
     ///
@@ -20,7 +22,7 @@ extension RFC_8259.Token {
         case `false`
         case string
         case number
-        case unknown(UInt8)
+        case unknown(ASCII.Code)
     }
 }
 
@@ -38,7 +40,7 @@ extension RFC_8259.Token.Kind: CustomStringConvertible {
         case .false: return "'false'"
         case .string: return "string"
         case .number: return "number"
-        case .unknown(let byte): return "0x\(String(byte, radix: 16))"
+        case .unknown(let code): return "0x\(String(code, radix: 16))"
         }
     }
 }
