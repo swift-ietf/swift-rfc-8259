@@ -30,6 +30,26 @@ extension RFC_8259.Number.Original {
         }
     }
 
+    /// Creates an Original from a contiguous byte span.
+    ///
+    /// Hot-path variant of `init<Bytes: Collection>(_:)` that avoids
+    /// the intermediate `Swift.Array(bytes)` allocation when the source
+    /// is already a contiguous `Swift.Span<UInt8>`. For numbers fitting
+    /// in inline storage (≤ 23 bytes — virtually all JSON numbers in
+    /// practice), this saves a heap allocation per Number.
+    @inlinable
+    public init(_ bytes: borrowing Swift.Span<UInt8>) {
+        if bytes.count <= 23 {
+            self.init(storage: .inline(Inline(bytes)))
+        } else {
+            // Rare path (number > 23 bytes). Materialize once into heap.
+            var heap: [UInt8] = []
+            heap.reserveCapacity(bytes.count)
+            for i in 0..<bytes.count { heap.append(bytes[i]) }
+            self.init(storage: .heap(heap))
+        }
+    }
+
     /// The original bytes as an array.
     public var bytes: [UInt8] {
         switch storage {

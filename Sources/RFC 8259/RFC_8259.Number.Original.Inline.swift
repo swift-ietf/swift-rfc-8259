@@ -65,6 +65,41 @@ extension RFC_8259.Number.Original {
             if bytes.count > 22 { b22 = bytes[22] }
         }
 
+        /// Span-taking sibling of the Array initializer.
+        ///
+        /// Avoids the intermediate `Swift.Array` allocation when the
+        /// source bytes are already contiguous in a `Swift.Span<UInt8>`
+        /// (e.g., the `Array.Small<24>.span` produced by the JSON lexer).
+        /// The 23-field copy is the same shape as the Array variant.
+        @usableFromInline
+        internal init(_ bytes: borrowing Swift.Span<UInt8>) {
+            precondition(bytes.count <= 23, "Inline can hold at most 23 bytes")
+            count = UInt8(bytes.count)
+            if bytes.count > 0 { b0 = bytes[0] }
+            if bytes.count > 1 { b1 = bytes[1] }
+            if bytes.count > 2 { b2 = bytes[2] }
+            if bytes.count > 3 { b3 = bytes[3] }
+            if bytes.count > 4 { b4 = bytes[4] }
+            if bytes.count > 5 { b5 = bytes[5] }
+            if bytes.count > 6 { b6 = bytes[6] }
+            if bytes.count > 7 { b7 = bytes[7] }
+            if bytes.count > 8 { b8 = bytes[8] }
+            if bytes.count > 9 { b9 = bytes[9] }
+            if bytes.count > 10 { b10 = bytes[10] }
+            if bytes.count > 11 { b11 = bytes[11] }
+            if bytes.count > 12 { b12 = bytes[12] }
+            if bytes.count > 13 { b13 = bytes[13] }
+            if bytes.count > 14 { b14 = bytes[14] }
+            if bytes.count > 15 { b15 = bytes[15] }
+            if bytes.count > 16 { b16 = bytes[16] }
+            if bytes.count > 17 { b17 = bytes[17] }
+            if bytes.count > 18 { b18 = bytes[18] }
+            if bytes.count > 19 { b19 = bytes[19] }
+            if bytes.count > 20 { b20 = bytes[20] }
+            if bytes.count > 21 { b21 = bytes[21] }
+            if bytes.count > 22 { b22 = bytes[22] }
+        }
+
         @usableFromInline
         internal var bytes: [UInt8] {
             var result: [UInt8] = []
