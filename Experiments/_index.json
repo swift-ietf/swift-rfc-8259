@@ -1,7 +1,7 @@
 {
   "$schema": "https://swift-institute.org/schemas/experiments-index-v1.json",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-04-30",
+  "generatedAt": "2026-05-20",
   "title": "Experiments Index",
   "blurb": "",
   "scope": "swift-rfc-8259 (swift-ietf)",
@@ -16,6 +16,19 @@
       "statusRaw": "SUPERSEDED (Phase 7a 2026-04-30)",
       "supersededBy": null,
       "crossRefs": []
+    },
+    {
+      "directory": "noncopyable-value-spike",
+      "purpose": "Structural feasibility validation for the ~Copyable RFC_8259.Value cascade (Path B of the canada-perf next-arc decision space). Confirms Q1 (~Copyable 6-case enum with 2 ~Copyable-payload cases compiles), Q2 (borrowing inspection + consuming switch compiles + runs), Q4 (Memory.Arena compose sanity); refutes Q3 (stdlib Array<Element> does NOT accept Element: ~Copyable — production storage must swap to Buffer<Value>.Linear from swift-buffer-primitives).",
+      "date": "2026-05-20",
+      "toolchain": "Swift 6.3+",
+      "status": "RESOLVED",
+      "statusDetail": "Backs noncopyable-value-feasibility.md v1.0.0 RECOMMENDATION",
+      "statusRaw": "RESOLVED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/noncopyable-value-feasibility.md"
+      ]
     }
   ]
 }
