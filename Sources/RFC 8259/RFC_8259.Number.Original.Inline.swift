@@ -3,41 +3,44 @@
 ///
 /// Inline storage for up to 23 bytes (renamed from InlineBytes)
 
+public import Byte_Primitives
+
 extension RFC_8259.Number.Original {
     /// Inline storage for up to 23 bytes.
     ///
     /// Most JSON numbers are short (e.g., "123", "-45.67", "1e10"),
     /// so inline storage avoids heap allocation in the common case.
+    /// Storage is Byte-typed per W2 byte-cascade discipline.
     @usableFromInline
     internal struct Inline: Sendable, Hashable {
         // 23 bytes of storage + 1 byte for count = 24 bytes total
-        @usableFromInline internal var b0: UInt8 = 0
-        @usableFromInline internal var b1: UInt8 = 0
-        @usableFromInline internal var b2: UInt8 = 0
-        @usableFromInline internal var b3: UInt8 = 0
-        @usableFromInline internal var b4: UInt8 = 0
-        @usableFromInline internal var b5: UInt8 = 0
-        @usableFromInline internal var b6: UInt8 = 0
-        @usableFromInline internal var b7: UInt8 = 0
-        @usableFromInline internal var b8: UInt8 = 0
-        @usableFromInline internal var b9: UInt8 = 0
-        @usableFromInline internal var b10: UInt8 = 0
-        @usableFromInline internal var b11: UInt8 = 0
-        @usableFromInline internal var b12: UInt8 = 0
-        @usableFromInline internal var b13: UInt8 = 0
-        @usableFromInline internal var b14: UInt8 = 0
-        @usableFromInline internal var b15: UInt8 = 0
-        @usableFromInline internal var b16: UInt8 = 0
-        @usableFromInline internal var b17: UInt8 = 0
-        @usableFromInline internal var b18: UInt8 = 0
-        @usableFromInline internal var b19: UInt8 = 0
-        @usableFromInline internal var b20: UInt8 = 0
-        @usableFromInline internal var b21: UInt8 = 0
-        @usableFromInline internal var b22: UInt8 = 0
+        @usableFromInline internal var b0: Byte = 0
+        @usableFromInline internal var b1: Byte = 0
+        @usableFromInline internal var b2: Byte = 0
+        @usableFromInline internal var b3: Byte = 0
+        @usableFromInline internal var b4: Byte = 0
+        @usableFromInline internal var b5: Byte = 0
+        @usableFromInline internal var b6: Byte = 0
+        @usableFromInline internal var b7: Byte = 0
+        @usableFromInline internal var b8: Byte = 0
+        @usableFromInline internal var b9: Byte = 0
+        @usableFromInline internal var b10: Byte = 0
+        @usableFromInline internal var b11: Byte = 0
+        @usableFromInline internal var b12: Byte = 0
+        @usableFromInline internal var b13: Byte = 0
+        @usableFromInline internal var b14: Byte = 0
+        @usableFromInline internal var b15: Byte = 0
+        @usableFromInline internal var b16: Byte = 0
+        @usableFromInline internal var b17: Byte = 0
+        @usableFromInline internal var b18: Byte = 0
+        @usableFromInline internal var b19: Byte = 0
+        @usableFromInline internal var b20: Byte = 0
+        @usableFromInline internal var b21: Byte = 0
+        @usableFromInline internal var b22: Byte = 0
         @usableFromInline internal var count: UInt8 = 0
 
         @usableFromInline
-        internal init(_ bytes: [UInt8]) {
+        internal init(_ bytes: [Byte]) {
             precondition(bytes.count <= 23, "Inline can hold at most 23 bytes")
             count = UInt8(bytes.count)
             if bytes.count > 0 { b0 = bytes[0] }
@@ -68,11 +71,11 @@ extension RFC_8259.Number.Original {
         /// Span-taking sibling of the Array initializer.
         ///
         /// Avoids the intermediate `Swift.Array` allocation when the
-        /// source bytes are already contiguous in a `Swift.Span<UInt8>`
+        /// source bytes are already contiguous in a `Swift.Span<Byte>`
         /// (e.g., the `Array.Small<24>.span` produced by the JSON lexer).
         /// The 23-field copy is the same shape as the Array variant.
         @usableFromInline
-        internal init(_ bytes: borrowing Swift.Span<UInt8>) {
+        internal init(_ bytes: borrowing Swift.Span<Byte>) {
             precondition(bytes.count <= 23, "Inline can hold at most 23 bytes")
             count = UInt8(bytes.count)
             if bytes.count > 0 { b0 = bytes[0] }
@@ -101,8 +104,8 @@ extension RFC_8259.Number.Original {
         }
 
         @usableFromInline
-        internal var bytes: [UInt8] {
-            var result: [UInt8] = []
+        internal var bytes: [Byte] {
+            var result: [Byte] = []
             result.reserveCapacity(Int(count))
             if count > 0 { result.append(b0) }
             if count > 1 { result.append(b1) }
