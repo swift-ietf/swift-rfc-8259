@@ -61,9 +61,21 @@ extension RFC_8259.Pull {
             limit: Int
         ) throws(Error) -> Kind? {
             skip(whitespace: &scanner)
-            // Type-up: lift to ASCII.Code at the peek boundary so cases match
-            // ASCII.Code constants directly (JSON tokens are strict ASCII).
-            guard let code: ASCII.Code = scanner.peek() else { return nil }
+            // Peek the RAW byte. A byte >= 0x80 is a real (unexpected) token,
+            // NOT end-of-input — the typed `peek<ASCII.Code>` overload collapses
+            // both EOF and >= 0x80 to nil, which would mis-report a non-ASCII
+            // byte as EOF. Lift to ASCII.Code only for the structural dispatch
+            // (JSON value-starts are strict ASCII); a non-ASCII byte falls to
+            // the unknown-token case carrying the raw Byte ([API-BYTE-004]).
+            guard let byte: Byte = scanner.peek() else { return nil }
+            guard byte.underlying < 0x80 else {
+                throw .unexpectedToken(
+                    at: position(at: scanner.position, scanner: scanner),
+                    found: .unknown(byte),
+                    expected: .value
+                )
+            }
+            let code = ASCII.Code(unchecked: byte)
 
             switch code {
             case .leftBrace:              // {
@@ -113,7 +125,7 @@ extension RFC_8259.Pull {
             default:
                 throw .unexpectedToken(
                     at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(code),
+                    found: .unknown(byte),
                     expected: .value
                 )
             }
@@ -126,8 +138,18 @@ extension RFC_8259.Pull {
             limit: Int
         ) throws(Error) {
             skip(whitespace: &scanner)
-            // Type-up: lift to ASCII.Code at the peek boundary.
-            guard let code: ASCII.Code = scanner.peek() else { return }
+            // Peek the RAW byte (see `next` above): distinguish genuine EOF from
+            // a non-ASCII byte. A byte >= 0x80 is an unexpected token, not end-
+            // of-input; lift to ASCII.Code only for the structural dispatch.
+            guard let byte: Byte = scanner.peek() else { return }
+            guard byte.underlying < 0x80 else {
+                throw .unexpectedToken(
+                    at: position(at: scanner.position, scanner: scanner),
+                    found: .unknown(byte),
+                    expected: .value
+                )
+            }
+            let code = ASCII.Code(unchecked: byte)
 
             switch code {
             case .quotationMark:          // "
@@ -150,7 +172,7 @@ extension RFC_8259.Pull {
             default:
                 throw .unexpectedToken(
                     at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(code),
+                    found: .unknown(byte),
                     expected: .value
                 )
             }
@@ -189,7 +211,7 @@ extension RFC_8259.Pull.Tokens {
             guard code == expectedCode else {
                 throw .unexpectedToken(
                     at: position(at: startCursor, scanner: scanner),
-                    found: .unknown(code),
+                    found: .unknown(code.byte),
                     expected: .value
                 )
             }
@@ -208,7 +230,16 @@ extension RFC_8259.Pull.Tokens {
         let startCursor = scanner.position
         scanner.advance() // Consume opening `"`.
 
-        while let code: ASCII.Code = scanner.peek() {
+        while let byte: Byte = scanner.peek() {
+            guard byte.underlying < 0x80 else {
+                // Multi-byte UTF-8 content byte (>= 0x80) — skip it. The typed
+                // peek used previously exited the loop on the first such byte,
+                // mis-reporting any string with non-ASCII content as
+                // unterminated. ([API-BYTE-004])
+                scanner.advance()
+                continue
+            }
+            let code = ASCII.Code(unchecked: byte)
             switch code {
             case .quotationMark:
                 scanner.advance()

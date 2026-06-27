@@ -22,7 +22,11 @@ extension RFC_8259.Token {
         case `false`
         case string
         case number
-        case unknown(ASCII.Code)
+        // An unexpected byte that is not a valid JSON value start. Carries the
+        // raw `Byte`, NOT `ASCII.Code`: an unexpected byte may be >= 0x80 (e.g.
+        // a stray UTF-8 lead byte outside a string), which `ASCII.Code` (0x00–
+        // 0x7F) cannot represent. Byte-domain opaque value per [API-BYTE-004].
+        case unknown(Byte)
     }
 }
 
@@ -40,7 +44,7 @@ extension RFC_8259.Token.Kind: CustomStringConvertible {
         case .false: return "'false'"
         case .string: return "string"
         case .number: return "number"
-        case .unknown(let code): return "0x\(String(code, radix: 16))"
+        case .unknown(let code): return "0x\(String(code.underlying, radix: 16))"
         }
     }
 }
