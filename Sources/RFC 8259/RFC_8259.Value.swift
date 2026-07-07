@@ -111,7 +111,8 @@ extension RFC_8259.Value {
     /// ```
     public subscript(_ index: Int) -> RFC_8259.Value? {
         guard let array = self.array,
-              array.indices.contains(index) else {
+            array.indices.contains(index)
+        else {
             return nil
         }
         return array[index]
@@ -177,9 +178,7 @@ extension RFC_8259.Value: CustomStringConvertible {
             // Simple escaping for description (not full JSON encoding)
             var escaped = ""
             for char in s {
-                if char == "\\" { escaped += "\\\\" }
-                else if char == "\"" { escaped += "\\\"" }
-                else { escaped.append(char) }
+                if char == "\\" { escaped += "\\\\" } else if char == "\"" { escaped += "\\\"" } else { escaped.append(char) }
             }
             return "\"\(escaped)\""
         case .array(let a):

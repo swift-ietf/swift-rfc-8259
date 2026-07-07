@@ -36,10 +36,10 @@ extension RFC_8259 {
     /// Whitespace is insignificant except within strings.
     @usableFromInline
     static let whitespace: Swift.Set<UInt8> = [
-        .ascii.sp,      // Space (0x20)
-        .ascii.htab,    // Horizontal tab (0x09)
-        .ascii.lf,      // Line feed (0x0A)
-        .ascii.cr,      // Carriage return (0x0D)
+        .ascii.sp,  // Space (0x20)
+        .ascii.htab,  // Horizontal tab (0x09)
+        .ascii.lf,  // Line feed (0x0A)
+        .ascii.cr,  // Carriage return (0x0D)
     ]
 
     /// Returns true if the byte is JSON whitespace.

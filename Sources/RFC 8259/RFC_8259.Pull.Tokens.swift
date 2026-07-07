@@ -78,48 +78,48 @@ extension RFC_8259.Pull {
             let code = ASCII.Code(unchecked: byte)
 
             switch code {
-            case .leftBrace:              // {
+            case .leftBrace:  // {
                 scanner.advance()
                 depth &+= 1
                 if depth > limit {
                     throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
                 }
                 return .objectStart
-            case .rightBrace:             // }
+            case .rightBrace:  // }
                 scanner.advance()
                 depth &-= 1
                 return .objectEnd
-            case .leftBracket:            // [
+            case .leftBracket:  // [
                 scanner.advance()
                 depth &+= 1
                 if depth > limit {
                     throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
                 }
                 return .arrayStart
-            case .rightBracket:           // ]
+            case .rightBracket:  // ]
                 scanner.advance()
                 depth &-= 1
                 return .arrayEnd
-            case .colon:                  // :
+            case .colon:  // :
                 scanner.advance()
                 return .colon
-            case .comma:                  // ,
+            case .comma:  // ,
                 scanner.advance()
                 return .comma
-            case .quotationMark:          // "
+            case .quotationMark:  // "
                 // Token start — payload deferred to currentString().
                 return .string
-            case .n:                      // null
+            case .n:  // null
                 try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
                 return .null
-            case .t:                      // true
+            case .t:  // true
                 try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
                 return .`true`
-            case .f:                      // false
+            case .f:  // false
                 try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
                 return .`false`
-            case .hyphen,                 // -
-                 .`0`...ASCII.Code.`9`:   // 0-9
+            case .hyphen,  // -
+                .`0`...ASCII.Code.`9`:  // 0-9
                 // Token start — payload deferred to currentNumber().
                 return .number
             default:
@@ -152,10 +152,10 @@ extension RFC_8259.Pull {
             let code = ASCII.Code(unchecked: byte)
 
             switch code {
-            case .quotationMark:          // "
+            case .quotationMark:  // "
                 try skipString(scanner: &scanner)
-            case .hyphen,                 // -
-                 .`0`...ASCII.Code.`9`:   // 0-9
+            case .hyphen,  // -
+                .`0`...ASCII.Code.`9`:  // 0-9
                 try skipNumber(scanner: &scanner)
             case .n:
                 try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
@@ -163,11 +163,11 @@ extension RFC_8259.Pull {
                 try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
             case .f:
                 try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
-            case .leftBrace,              // {
-                 .leftBracket:            // [
+            case .leftBrace,  // {
+                .leftBracket:  // [
                 try skipContainerBalanced(scanner: &scanner, depth: &depth, limit: limit)
-            case .rightBrace,             // }
-                 .rightBracket:           // ]
+            case .rightBrace,  // }
+                .rightBracket:  // ]
                 try skipContainerBodyBalanced(scanner: &scanner, depth: &depth, limit: limit)
             default:
                 throw .unexpectedToken(
@@ -228,7 +228,7 @@ extension RFC_8259.Pull.Tokens {
         scanner: inout Lexer_Primitives.Lexer.Scanner
     ) throws(Error) {
         let startCursor = scanner.position
-        scanner.advance() // Consume opening `"`.
+        scanner.advance()  // Consume opening `"`.
 
         while let byte: Byte = scanner.peek() {
             guard byte.underlying < 0x80 else {
@@ -259,9 +259,10 @@ extension RFC_8259.Pull.Tokens {
                     }
                     // Optional surrogate pair continuation.
                     if let next: ASCII.Code = scanner.peek(), next == .reverseSlant,
-                       let after: ASCII.Code = scanner.peek(at: .one), after == .u {
-                        scanner.advance() // \
-                        scanner.advance() // u
+                        let after: ASCII.Code = scanner.peek(at: .one), after == .u
+                    {
+                        scanner.advance()  // \
+                        scanner.advance()  // u
                         for _ in 0..<4 {
                             guard let b: ASCII.Code = scanner.peek(), b.isHexDigit else {
                                 throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .invalidUnicodeEscape)
@@ -363,7 +364,7 @@ extension RFC_8259.Pull.Tokens {
     ) throws(Error) {
         let opener: ASCII.Code = scanner.peek()!
         let closer: ASCII.Code = opener == .leftBrace ? .rightBrace : .rightBracket
-        scanner.advance() // Consume opener.
+        scanner.advance()  // Consume opener.
 
         var balance = 1
         let startDepth = depth

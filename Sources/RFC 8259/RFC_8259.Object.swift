@@ -148,7 +148,8 @@ extension RFC_8259.Object {
         guard lhs._storage.count == rhs._storage.count else { return false }
         for i in lhs._storage.indices {
             guard lhs._storage[i].key == rhs._storage[i].key,
-                  lhs._storage[i].value == rhs._storage[i].value else {
+                lhs._storage[i].value == rhs._storage[i].value
+            else {
                 return false
             }
         }
