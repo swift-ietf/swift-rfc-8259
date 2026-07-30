@@ -184,7 +184,7 @@ extension RFC_8259.Pull {
 
 extension RFC_8259.Pull.Tokens {
     @inlinable
-    internal static func position(
+    package static func position(
         at cursor: Text.Position,
         scanner: borrowing Lexer_Primitives.Lexer.Scanner
     ) -> RFC_8259.Position {
@@ -196,7 +196,7 @@ extension RFC_8259.Pull.Tokens {
 
 extension RFC_8259.Pull.Tokens {
     @inlinable
-    internal static func expectLiteral(
+    package static func expectLiteral(
         scanner: inout Lexer_Primitives.Lexer.Scanner,
         _ expected: [ASCII.Code]
     ) throws(Error) {
@@ -224,7 +224,7 @@ extension RFC_8259.Pull.Tokens {
 
 extension RFC_8259.Pull.Tokens {
     @inlinable
-    internal static func skipString(
+    package static func skipString(
         scanner: inout Lexer_Primitives.Lexer.Scanner
     ) throws(Error) {
         let startCursor = scanner.position
@@ -289,7 +289,7 @@ extension RFC_8259.Pull.Tokens {
 
 extension RFC_8259.Pull.Tokens {
     @inlinable
-    internal static func skipNumber(
+    package static func skipNumber(
         scanner: inout Lexer_Primitives.Lexer.Scanner
     ) throws(Error) {
         let startCursor = scanner.position
@@ -357,7 +357,7 @@ extension RFC_8259.Pull.Tokens {
 
 extension RFC_8259.Pull.Tokens {
     @inlinable
-    internal static func skipContainerBalanced(
+    package static func skipContainerBalanced(
         scanner: inout Lexer_Primitives.Lexer.Scanner,
         depth: inout Int,
         limit: Int
@@ -430,7 +430,7 @@ extension RFC_8259.Pull.Tokens {
     }
 
     @inlinable
-    internal static func skipContainerBodyBalanced(
+    package static func skipContainerBodyBalanced(
         scanner: inout Lexer_Primitives.Lexer.Scanner,
         depth: inout Int,
         limit: Int
