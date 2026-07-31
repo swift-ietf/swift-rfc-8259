@@ -47,7 +47,7 @@ extension RFC_8259.Number.Original {
             // Rare path (number > 23 bytes). Materialize once into heap.
             var heap: [Byte] = []
             heap.reserveCapacity(bytes.count)
-            for i in 0..<bytes.count { heap.append(bytes[i]) }
+            bytes.indices.forEach { heap.append(bytes[$0]) }
             self.init(storage: .heap(heap))
         }
     }

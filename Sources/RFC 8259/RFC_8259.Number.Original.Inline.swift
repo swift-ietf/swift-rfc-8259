@@ -102,35 +102,37 @@ extension RFC_8259.Number.Original {
             if bytes.count > 21 { b21 = bytes[21] }
             if bytes.count > 22 { b22 = bytes[22] }
         }
+    }
+}
 
-        @usableFromInline
-        internal var bytes: [Byte] {
-            var result: [Byte] = []
-            result.reserveCapacity(Int(count))
-            if count > 0 { result.append(b0) }
-            if count > 1 { result.append(b1) }
-            if count > 2 { result.append(b2) }
-            if count > 3 { result.append(b3) }
-            if count > 4 { result.append(b4) }
-            if count > 5 { result.append(b5) }
-            if count > 6 { result.append(b6) }
-            if count > 7 { result.append(b7) }
-            if count > 8 { result.append(b8) }
-            if count > 9 { result.append(b9) }
-            if count > 10 { result.append(b10) }
-            if count > 11 { result.append(b11) }
-            if count > 12 { result.append(b12) }
-            if count > 13 { result.append(b13) }
-            if count > 14 { result.append(b14) }
-            if count > 15 { result.append(b15) }
-            if count > 16 { result.append(b16) }
-            if count > 17 { result.append(b17) }
-            if count > 18 { result.append(b18) }
-            if count > 19 { result.append(b19) }
-            if count > 20 { result.append(b20) }
-            if count > 21 { result.append(b21) }
-            if count > 22 { result.append(b22) }
-            return result
-        }
+extension RFC_8259.Number.Original.Inline {
+    @usableFromInline
+    internal var bytes: [Byte] {
+        var result: [Byte] = []
+        result.reserveCapacity(Int(count))
+        if count > 0 { result.append(b0) }
+        if count > 1 { result.append(b1) }
+        if count > 2 { result.append(b2) }
+        if count > 3 { result.append(b3) }
+        if count > 4 { result.append(b4) }
+        if count > 5 { result.append(b5) }
+        if count > 6 { result.append(b6) }
+        if count > 7 { result.append(b7) }
+        if count > 8 { result.append(b8) }
+        if count > 9 { result.append(b9) }
+        if count > 10 { result.append(b10) }
+        if count > 11 { result.append(b11) }
+        if count > 12 { result.append(b12) }
+        if count > 13 { result.append(b13) }
+        if count > 14 { result.append(b14) }
+        if count > 15 { result.append(b15) }
+        if count > 16 { result.append(b16) }
+        if count > 17 { result.append(b17) }
+        if count > 18 { result.append(b18) }
+        if count > 19 { result.append(b19) }
+        if count > 20 { result.append(b20) }
+        if count > 21 { result.append(b21) }
+        if count > 22 { result.append(b22) }
+        return result
     }
 }

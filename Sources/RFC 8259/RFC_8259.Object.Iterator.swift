@@ -12,10 +12,12 @@ extension RFC_8259.Object {
         internal init(_ storage: [(key: String, value: RFC_8259.Value)]) {
             self.base = storage.makeIterator()
         }
+    }
+}
 
-        @inlinable
-        public mutating func next() -> (key: String, value: RFC_8259.Value)? {
-            base.next()
-        }
+extension RFC_8259.Object.Iterator {
+    @inlinable
+    public mutating func next() -> (key: String, value: RFC_8259.Value)? {
+        base.next()
     }
 }

@@ -21,161 +21,165 @@
 @_spi(Unsafe) public import Array_Primitives
 
 extension RFC_8259.Pull {
-    public enum Tokens: Lexer_Primitives.Lexer.Pull.Tokens {
-        public typealias Kind = RFC_8259.Token.Kind
-        public typealias Error = RFC_8259.Error
-        public typealias Scratch = [UInt8]
+    public enum Tokens: Lexer_Primitives.Lexer.Pull.Tokens {}
+}
 
-        @inlinable
-        public static func initial() -> [UInt8] {
-            var scratch: [UInt8] = []
-            scratch.reserveCapacity(64)
-            return scratch
+extension RFC_8259.Pull.Tokens {
+    public typealias Kind = RFC_8259.Token.Kind
+    public typealias Error = RFC_8259.Error
+    public typealias Scratch = [UInt8]
+}
+
+extension RFC_8259.Pull.Tokens {
+    @inlinable
+    public static func initial() -> [UInt8] {
+        var scratch: [UInt8] = []
+        scratch.reserveCapacity(64)
+        return scratch
+    }
+
+    @inlinable
+    public static func delta(for kind: Kind) -> Int {
+        switch kind {
+        case .objectStart, .arrayStart: return 1
+        case .objectEnd, .arrayEnd: return -1
+        default: return 0
         }
+    }
 
-        @inlinable
-        public static func delta(for kind: Kind) -> Int {
-            switch kind {
-            case .objectStart, .arrayStart: return 1
-            case .objectEnd, .arrayEnd: return -1
-            default: return 0
-            }
-        }
-
-        @inlinable
-        public static func skip(whitespace scanner: inout Lexer_Primitives.Lexer.Scanner) {
-            while let byte = scanner.peek() {
-                switch byte {
-                case 0x20, 0x09, 0x0A, 0x0D:
-                    scanner.advance()
-                default:
-                    return
-                }
-            }
-        }
-
-        @inlinable
-        public static func next(
-            scanner: inout Lexer_Primitives.Lexer.Scanner,
-            depth: inout Int,
-            limit: Int
-        ) throws(Error) -> Kind? {
-            skip(whitespace: &scanner)
-            // Peek the RAW byte. A byte >= 0x80 is a real (unexpected) token,
-            // NOT end-of-input — the typed `peek<ASCII.Code>` overload collapses
-            // both EOF and >= 0x80 to nil, which would mis-report a non-ASCII
-            // byte as EOF. Lift to ASCII.Code only for the structural dispatch
-            // (JSON value-starts are strict ASCII); a non-ASCII byte falls to
-            // the unknown-token case carrying the raw Byte ([API-BYTE-004]).
-            guard let byte: Byte = scanner.peek() else { return nil }
-            guard byte.underlying < 0x80 else {
-                throw .unexpectedToken(
-                    at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(byte),
-                    expected: .value
-                )
-            }
-            let code = ASCII.Code(unchecked: byte)
-
-            switch code {
-            case .leftBrace:  // {
+    @inlinable
+    public static func skip(whitespace scanner: inout Lexer_Primitives.Lexer.Scanner) {
+        while let byte = scanner.peek() {
+            switch byte {
+            case 0x20, 0x09, 0x0A, 0x0D:
                 scanner.advance()
-                depth &+= 1
-                if depth > limit {
-                    throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
-                }
-                return .objectStart
-            case .rightBrace:  // }
-                scanner.advance()
-                depth &-= 1
-                return .objectEnd
-            case .leftBracket:  // [
-                scanner.advance()
-                depth &+= 1
-                if depth > limit {
-                    throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
-                }
-                return .arrayStart
-            case .rightBracket:  // ]
-                scanner.advance()
-                depth &-= 1
-                return .arrayEnd
-            case .colon:  // :
-                scanner.advance()
-                return .colon
-            case .comma:  // ,
-                scanner.advance()
-                return .comma
-            case .quotationMark:  // "
-                // Token start — payload deferred to currentString().
-                return .string
-            case .n:  // null
-                try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
-                return .null
-            case .t:  // true
-                try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
-                return .`true`
-            case .f:  // false
-                try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
-                return .`false`
-            case .hyphen,  // -
-                .`0`...ASCII.Code.`9`:  // 0-9
-                // Token start — payload deferred to currentNumber().
-                return .number
             default:
-                throw .unexpectedToken(
-                    at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(byte),
-                    expected: .value
-                )
+                return
             }
         }
+    }
 
-        @inlinable
-        public static func skip(
-            value scanner: inout Lexer_Primitives.Lexer.Scanner,
-            depth: inout Int,
-            limit: Int
-        ) throws(Error) {
-            skip(whitespace: &scanner)
-            // Peek the RAW byte (see `next` above): distinguish genuine EOF from
-            // a non-ASCII byte. A byte >= 0x80 is an unexpected token, not end-
-            // of-input; lift to ASCII.Code only for the structural dispatch.
-            guard let byte: Byte = scanner.peek() else { return }
-            guard byte.underlying < 0x80 else {
-                throw .unexpectedToken(
-                    at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(byte),
-                    expected: .value
-                )
-            }
-            let code = ASCII.Code(unchecked: byte)
+    @inlinable
+    public static func next(
+        scanner: inout Lexer_Primitives.Lexer.Scanner,
+        depth: inout Int,
+        limit: Int
+    ) throws(Error) -> Kind? {
+        skip(whitespace: &scanner)
+        // Peek the RAW byte. A byte >= 0x80 is a real (unexpected) token,
+        // NOT end-of-input — the typed `peek<ASCII.Code>` overload collapses
+        // both EOF and >= 0x80 to nil, which would mis-report a non-ASCII
+        // byte as EOF. Lift to ASCII.Code only for the structural dispatch
+        // (JSON value-starts are strict ASCII); a non-ASCII byte falls to
+        // the unknown-token case carrying the raw Byte ([API-BYTE-004]).
+        guard let byte: Byte = scanner.peek() else { return nil }
+        guard byte.underlying < 0x80 else {
+            throw .unexpectedToken(
+                at: position(at: scanner.position, scanner: scanner),
+                found: .unknown(byte),
+                expected: .value
+            )
+        }
+        let code = ASCII.Code(unchecked: byte)
 
-            switch code {
-            case .quotationMark:  // "
-                try skipString(scanner: &scanner)
-            case .hyphen,  // -
-                .`0`...ASCII.Code.`9`:  // 0-9
-                try skipNumber(scanner: &scanner)
-            case .n:
-                try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
-            case .t:
-                try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
-            case .f:
-                try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
-            case .leftBrace,  // {
-                .leftBracket:  // [
-                try skipContainerBalanced(scanner: &scanner, depth: &depth, limit: limit)
-            case .rightBrace,  // }
-                .rightBracket:  // ]
-                try skipContainerBodyBalanced(scanner: &scanner, depth: &depth, limit: limit)
-            default:
-                throw .unexpectedToken(
-                    at: position(at: scanner.position, scanner: scanner),
-                    found: .unknown(byte),
-                    expected: .value
-                )
+        switch code {
+        case .leftBrace:  // {
+            scanner.advance()
+            depth &+= 1
+            if depth > limit {
+                throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
             }
+            return .objectStart
+        case .rightBrace:  // }
+            scanner.advance()
+            depth &-= 1
+            return .objectEnd
+        case .leftBracket:  // [
+            scanner.advance()
+            depth &+= 1
+            if depth > limit {
+                throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
+            }
+            return .arrayStart
+        case .rightBracket:  // ]
+            scanner.advance()
+            depth &-= 1
+            return .arrayEnd
+        case .colon:  // :
+            scanner.advance()
+            return .colon
+        case .comma:  // ,
+            scanner.advance()
+            return .comma
+        case .quotationMark:  // "
+            // Token start — payload deferred to currentString().
+            return .string
+        case .n:  // null
+            try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
+            return .null
+        case .t:  // true
+            try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
+            return .`true`
+        case .f:  // false
+            try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
+            return .`false`
+        case .hyphen,  // -
+            .`0`...ASCII.Code.`9`:  // 0-9
+            // Token start — payload deferred to currentNumber().
+            return .number
+        default:
+            throw .unexpectedToken(
+                at: position(at: scanner.position, scanner: scanner),
+                found: .unknown(byte),
+                expected: .value
+            )
+        }
+    }
+
+    @inlinable
+    public static func skip(
+        value scanner: inout Lexer_Primitives.Lexer.Scanner,
+        depth: inout Int,
+        limit: Int
+    ) throws(Error) {
+        skip(whitespace: &scanner)
+        // Peek the RAW byte (see `next` above): distinguish genuine EOF from
+        // a non-ASCII byte. A byte >= 0x80 is an unexpected token, not end-
+        // of-input; lift to ASCII.Code only for the structural dispatch.
+        guard let byte: Byte = scanner.peek() else { return }
+        guard byte.underlying < 0x80 else {
+            throw .unexpectedToken(
+                at: position(at: scanner.position, scanner: scanner),
+                found: .unknown(byte),
+                expected: .value
+            )
+        }
+        let code = ASCII.Code(unchecked: byte)
+
+        switch code {
+        case .quotationMark:  // "
+            try skipString(scanner: &scanner)
+        case .hyphen,  // -
+            .`0`...ASCII.Code.`9`:  // 0-9
+            try skipNumber(scanner: &scanner)
+        case .n:
+            try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
+        case .t:
+            try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
+        case .f:
+            try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
+        case .leftBrace,  // {
+            .leftBracket:  // [
+            try skipContainerBalanced(scanner: &scanner, depth: &depth, limit: limit)
+        case .rightBrace,  // }
+            .rightBracket:  // ]
+            try skipContainerBodyBalanced(scanner: &scanner, depth: &depth, limit: limit)
+        default:
+            throw .unexpectedToken(
+                at: position(at: scanner.position, scanner: scanner),
+                found: .unknown(byte),
+                expected: .value
+            )
         }
     }
 }
