@@ -41,16 +41,22 @@ extension RFC_8259.Error: CustomStringConvertible {
         switch self {
         case .unexpectedToken(let pos, let found, let expected):
             return "Unexpected \(found) at \(pos), expected \(expected)"
+
         case .unexpectedEndOfInput(let pos, let expected):
             return "Unexpected end of input at \(pos), expected \(expected)"
+
         case .invalidNumber(let pos, let reason):
             return "Invalid number at \(pos): \(reason)"
+
         case .invalidString(let pos, let reason):
             return "Invalid string at \(pos): \(reason)"
+
         case .invalidUTF8(let pos, let byte):
             return "Invalid UTF-8 byte 0x\(Swift.String(byte, radix: 16)) at \(pos)"
+
         case .depthExceeded(let pos, let limit):
             return "Nesting depth exceeded \(limit) at \(pos)"
+
         case .trailingContent(let pos):
             return "Unexpected content after JSON value at \(pos)"
         }

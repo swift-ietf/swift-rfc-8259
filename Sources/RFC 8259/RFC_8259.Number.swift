@@ -62,8 +62,10 @@ extension RFC_8259.Number {
         switch parsed {
         case .integer(let v):
             return Int(exactly: v)
+
         case .unsigned(let v):
             return Int(exactly: v)
+
         case .float(let v):
             guard v == v.rounded() else { return nil }
             return Int(exactly: v)
@@ -90,6 +92,7 @@ extension RFC_8259.Number {
         switch parsed {
         case .integer, .unsigned:
             return true
+
         case .float(let v):
             return v == v.rounded() && v.isFinite
         }

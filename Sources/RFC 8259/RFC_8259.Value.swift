@@ -170,10 +170,13 @@ extension RFC_8259.Value: CustomStringConvertible {
         switch self {
         case .null:
             return "null"
+
         case .bool(let b):
             return b ? "true" : "false"
+
         case .number(let n):
             return n.description
+
         case .string(let s):
             // Simple escaping for description (not full JSON encoding)
             var escaped = ""
@@ -181,8 +184,10 @@ extension RFC_8259.Value: CustomStringConvertible {
                 if char == "\\" { escaped += "\\\\" } else if char == "\"" { escaped += "\\\"" } else { escaped.append(char) }
             }
             return "\"\(escaped)\""
+
         case .array(let a):
             return a.description
+
         case .object(let o):
             return o.description
         }

@@ -53,6 +53,7 @@ extension RFC_8259.Pull.Tokens {
             switch byte {
             case 0x20, 0x09, 0x0A, 0x0D:
                 scanner.advance()
+
             default:
                 return
             }
@@ -90,10 +91,12 @@ extension RFC_8259.Pull.Tokens {
                 throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
             }
             return .objectStart
+
         case .rightBrace:  // }
             scanner.advance()
             depth &-= 1
             return .objectEnd
+
         case .leftBracket:  // [
             scanner.advance()
             depth &+= 1
@@ -101,32 +104,41 @@ extension RFC_8259.Pull.Tokens {
                 throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
             }
             return .arrayStart
+
         case .rightBracket:  // ]
             scanner.advance()
             depth &-= 1
             return .arrayEnd
+
         case .colon:  // :
             scanner.advance()
             return .colon
+
         case .comma:  // ,
             scanner.advance()
             return .comma
+
         case .quotationMark:  // "
             // Token start — payload deferred to currentString().
             return .string
+
         case .n:  // null
             try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
             return .null
+
         case .t:  // true
             try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
             return .`true`
+
         case .f:  // false
             try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
             return .`false`
+
         case .hyphen,  // -
             .`0`...ASCII.Code.`9`:  // 0-9
             // Token start — payload deferred to currentNumber().
             return .number
+
         default:
             throw .unexpectedToken(
                 at: position(at: scanner.position, scanner: scanner),
@@ -159,21 +171,28 @@ extension RFC_8259.Pull.Tokens {
         switch code {
         case .quotationMark:  // "
             try skipString(scanner: &scanner)
+
         case .hyphen,  // -
             .`0`...ASCII.Code.`9`:  // 0-9
             try skipNumber(scanner: &scanner)
+
         case .n:
             try expectLiteral(scanner: &scanner, [.n, .u, .l, .l])
+
         case .t:
             try expectLiteral(scanner: &scanner, [.t, .r, .u, .e])
+
         case .f:
             try expectLiteral(scanner: &scanner, [.f, .a, .l, .s, .e])
+
         case .leftBrace,  // {
             .leftBracket:  // [
             try skipContainerBalanced(scanner: &scanner, depth: &depth, limit: limit)
+
         case .rightBrace,  // }
             .rightBracket:  // ]
             try skipContainerBodyBalanced(scanner: &scanner, depth: &depth, limit: limit)
+
         default:
             throw .unexpectedToken(
                 at: position(at: scanner.position, scanner: scanner),
@@ -248,6 +267,7 @@ extension RFC_8259.Pull.Tokens {
             case .quotationMark:
                 scanner.advance()
                 return
+
             case .reverseSlant:
                 scanner.advance()
                 guard let esc: ASCII.Code = scanner.peek() else {
@@ -275,8 +295,10 @@ extension RFC_8259.Pull.Tokens {
                         }
                     }
                 }
+
             case .nul...ASCII.Code.us:  // 0x00...0x1F (per ASCII.Code Control range)
                 throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .controlCharacter(code))
+
             default:
                 scanner.advance()
             }
@@ -390,6 +412,7 @@ extension RFC_8259.Pull.Tokens {
             switch code {
             case .quotationMark:
                 try skipString(scanner: &scanner)
+
             case .leftBrace, .leftBracket:
                 let inner = code
                 let innerCloser: ASCII.Code = inner == .leftBrace ? .rightBrace : .rightBracket
@@ -424,9 +447,11 @@ extension RFC_8259.Pull.Tokens {
                         scanner.advance()
                     }
                 }
+
             case closer:
                 scanner.advance()
                 balance &-= 1
+
             default:
                 scanner.advance()
             }
@@ -456,15 +481,18 @@ extension RFC_8259.Pull.Tokens {
             switch code {
             case .quotationMark:
                 try skipString(scanner: &scanner)
+
             case .leftBrace, .leftBracket:
                 scanner.advance()
                 depth &+= 1
                 if depth > limit {
                     throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
                 }
+
             case .rightBrace, .rightBracket:
                 scanner.advance()
                 depth &-= 1
+
             default:
                 scanner.advance()
             }

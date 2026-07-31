@@ -57,6 +57,7 @@ extension RFC_8259.Number.Original {
         switch storage {
         case .inline(let inline):
             return inline.bytes
+
         case .heap(let array):
             return array
         }

@@ -75,7 +75,7 @@ extension RFC_8259.Object {
             _storage.first { $0.key == key }?.value
         }
         set {
-            if let newValue = newValue {
+            if let newValue {
                 if let index = _storage.firstIndex(where: { $0.key == key }) {
                     _storage[index] = (key, newValue)
                 } else {
