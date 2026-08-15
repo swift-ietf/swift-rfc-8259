@@ -92,7 +92,10 @@ extension RFC_8259.Pull.Tokens {
             if depth > limit {
                 // swift-linter:disable:next raw value access
                 // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
+                throw .depthExceeded(
+                    at: position(at: scanner.position, scanner: scanner),
+                    limit: limit
+                )
             }
             return .objectStart
 
@@ -107,7 +110,10 @@ extension RFC_8259.Pull.Tokens {
             if depth > limit {
                 // swift-linter:disable:next raw value access
                 // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
+                throw .depthExceeded(
+                    at: position(at: scanner.position, scanner: scanner),
+                    limit: limit
+                )
             }
             return .arrayStart
 
@@ -291,7 +297,10 @@ extension RFC_8259.Pull.Tokens {
                 guard let esc: ASCII.Code = scanner.peek() else {
                     // swift-linter:disable:next raw value access
                     // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                    throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .unterminated)
+                    throw .invalidString(
+                        at: position(at: scanner.position, scanner: scanner),
+                        reason: .unterminated
+                    )
                 }
                 scanner.advance()
                 if esc == .u {
@@ -299,7 +308,10 @@ extension RFC_8259.Pull.Tokens {
                         guard let b: ASCII.Code = scanner.peek(), b.isHexDigit else {
                             // swift-linter:disable:next raw value access
                             // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                            throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .invalidUnicodeEscape)
+                            throw .invalidString(
+                                at: position(at: scanner.position, scanner: scanner),
+                                reason: .invalidUnicodeEscape
+                            )
                         }
                         scanner.advance()
                     }
@@ -313,7 +325,10 @@ extension RFC_8259.Pull.Tokens {
                             guard let b: ASCII.Code = scanner.peek(), b.isHexDigit else {
                                 // swift-linter:disable:next raw value access
                                 // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                                throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .invalidUnicodeEscape)
+                                throw .invalidString(
+                                    at: position(at: scanner.position, scanner: scanner),
+                                    reason: .invalidUnicodeEscape
+                                )
                             }
                             scanner.advance()
                         }
@@ -323,7 +338,10 @@ extension RFC_8259.Pull.Tokens {
             case .nul...ASCII.Code.us:  // 0x00...0x1F (per ASCII.Code Control range)
                 // swift-linter:disable:next raw value access
                 // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                throw .invalidString(at: position(at: scanner.position, scanner: scanner), reason: .controlCharacter(code))
+                throw .invalidString(
+                    at: position(at: scanner.position, scanner: scanner),
+                    reason: .controlCharacter(code)
+                )
 
             default:
                 scanner.advance()
@@ -453,7 +471,10 @@ extension RFC_8259.Pull.Tokens {
                 if depth > limit {
                     // swift-linter:disable:next raw value access
                     // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                    throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
+                    throw .depthExceeded(
+                        at: position(at: scanner.position, scanner: scanner),
+                        limit: limit
+                    )
                 }
                 var innerBalance = 1
                 while innerBalance > 0 {
@@ -474,7 +495,10 @@ extension RFC_8259.Pull.Tokens {
                         if depth > limit {
                             // swift-linter:disable:next raw value access
                             // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                            throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
+                            throw .depthExceeded(
+                                at: position(at: scanner.position, scanner: scanner),
+                                limit: limit
+                            )
                         }
                         innerBalance &+= 1
                     } else if ib == innerCloser {
@@ -528,7 +552,10 @@ extension RFC_8259.Pull.Tokens {
                 if depth > limit {
                     // swift-linter:disable:next raw value access
                     // REASON: same-package lexer implementation reading Lexer.Scanner's typed `.position` cursor for error-position reporting; `.position` is the intended typed accessor, no alternative exists.
-                    throw .depthExceeded(at: position(at: scanner.position, scanner: scanner), limit: limit)
+                    throw .depthExceeded(
+                        at: position(at: scanner.position, scanner: scanner),
+                        limit: limit
+                    )
                 }
 
             case .rightBrace, .rightBracket:

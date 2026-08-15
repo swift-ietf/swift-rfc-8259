@@ -30,14 +30,26 @@ extension RFC_8259 {
         func `Value.bool roundtrips`() {
             let t: RFC_8259.Value = .bool(true)
             let f: RFC_8259.Value = .bool(false)
-            if case .bool(let v) = t { #expect(v == true) } else { Issue.record("Expected .bool(true)") }
-            if case .bool(let v) = f { #expect(v == false) } else { Issue.record("Expected .bool(false)") }
+            if case .bool(let v) = t {
+                #expect(v == true)
+            } else {
+                Issue.record("Expected .bool(true)")
+            }
+            if case .bool(let v) = f {
+                #expect(v == false)
+            } else {
+                Issue.record("Expected .bool(false)")
+            }
         }
 
         @Test
         func `Value.string roundtrips`() {
             let v: RFC_8259.Value = .string("hello")
-            if case .string(let s) = v { #expect(s == "hello") } else { Issue.record("Expected .string") }
+            if case .string(let s) = v {
+                #expect(s == "hello")
+            } else {
+                Issue.record("Expected .string")
+            }
         }
 
         @Test
@@ -57,8 +69,16 @@ extension RFC_8259 {
             let elements: [RFC_8259.Value] = [.bool(true), .bool(false), .null]
             let array = RFC_8259.Array(elements)
             #expect(array.count == 3)
-            if case .bool(let v) = array[0] { #expect(v == true) } else { Issue.record("Expected .bool(true)") }
-            if case .bool(let v) = array[1] { #expect(v == false) } else { Issue.record("Expected .bool(false)") }
+            if case .bool(let v) = array[0] {
+                #expect(v == true)
+            } else {
+                Issue.record("Expected .bool(true)")
+            }
+            if case .bool(let v) = array[1] {
+                #expect(v == false)
+            } else {
+                Issue.record("Expected .bool(false)")
+            }
             if case .null = array[2] {} else { Issue.record("Expected .null") }
         }
 
