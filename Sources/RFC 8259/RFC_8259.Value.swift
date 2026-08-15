@@ -181,7 +181,13 @@ extension RFC_8259.Value: CustomStringConvertible {
             // Simple escaping for description (not full JSON encoding)
             var escaped = ""
             for char in s {
-                if char == "\\" { escaped += "\\\\" } else if char == "\"" { escaped += "\\\"" } else { escaped.append(char) }
+                if char == "\\" {
+                    escaped += "\\\\"
+                } else if char == "\"" {
+                    escaped += "\\\""
+                } else {
+                    escaped.append(char)
+                }
             }
             return "\"\(escaped)\""
 
