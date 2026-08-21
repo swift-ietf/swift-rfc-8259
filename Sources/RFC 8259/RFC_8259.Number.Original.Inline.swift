@@ -1,19 +1,10 @@
-/// RFC_8259.Number.Original.Inline.swift
-/// swift-rfc-8259
-///
-/// Inline storage for up to 23 bytes (renamed from InlineBytes)
-
 public import Byte_Primitives
 
 extension RFC_8259.Number.Original {
-    /// Inline storage for up to 23 bytes.
-    ///
-    /// Most JSON numbers are short (e.g., "123", "-45.67", "1e10"),
-    /// so inline storage avoids heap allocation in the common case.
-    /// Storage is Byte-typed per W2 byte-cascade discipline.
+
     @usableFromInline
     internal struct Inline: Sendable, Hashable {
-        // 23 bytes of storage + 1 byte for count = 24 bytes total
+
         @usableFromInline internal var b0: Byte = 0
         @usableFromInline internal var b1: Byte = 0
         @usableFromInline internal var b2: Byte = 0
@@ -68,12 +59,6 @@ extension RFC_8259.Number.Original {
             if bytes.count > 22 { b22 = bytes[22] }
         }
 
-        /// Span-taking sibling of the Array initializer.
-        ///
-        /// Avoids the intermediate `Swift.Array` allocation when the
-        /// source bytes are already contiguous in a `Swift.Span<Byte>`
-        /// (e.g., the `Array.Small<24>.span` produced by the JSON lexer).
-        /// The 23-field copy is the same shape as the Array variant.
         @usableFromInline
         internal init(_ bytes: borrowing Swift.Span<Byte>) {
             precondition(bytes.count <= 23, "Inline can hold at most 23 bytes")

@@ -1,15 +1,3 @@
-/// RFC 8259 Spec Tests.swift
-/// swift-rfc-8259
-///
-/// Spec-only tests: value-model construction, token vocabulary,
-/// error vocabulary, position semantics. Tests for parsing /
-/// encoding / wholesale Span fast-path live at L3 in swift-json.
-///
-/// Per Arc 1.5, swift-rfc-8259 retains only the RFC 8259 spec — its
-/// data model, token vocabulary, error vocabulary, and the
-/// `Pull.Tokens` witness. The associated tests here verify that
-/// surface remains coherent.
-
 import Testing
 
 @testable import RFC_8259
@@ -17,8 +5,6 @@ import Testing
 extension RFC_8259 {
     @Suite("RFC 8259 Spec Tests")
     struct Tests {
-
-        // MARK: - Value model
 
         @Test
         func `Value.null is .null case`() {
@@ -82,8 +68,6 @@ extension RFC_8259 {
             if case .null = array[2] {} else { Issue.record("Expected .null") }
         }
 
-        // MARK: - Number representation
-
         @Test
         func `Number from Int round-trips`() {
             let n = RFC_8259.Number(42)
@@ -96,8 +80,6 @@ extension RFC_8259 {
             #expect(n.double == 3.14)
         }
 
-        // MARK: - Token vocabulary
-
         @Test
         func `Token.Kind covers RFC 8259 structural characters`() {
             let kinds: [RFC_8259.Token.Kind] = [
@@ -107,11 +89,9 @@ extension RFC_8259 {
                 .null, .`true`, .`false`,
                 .string, .number,
             ]
-            // Just verifying the cases exist and are distinct via simple iteration.
+
             #expect(kinds.count == 11)
         }
-
-        // MARK: - Error vocabulary
 
         @Test
         func `Error.unexpectedEndOfInput exists with expected payload`() {

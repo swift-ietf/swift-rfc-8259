@@ -1,53 +1,33 @@
-/// RFC_8259.Token.swift
-/// swift-rfc-8259
-///
-/// JSON token vocabulary (RFC 8259 §§4–7).
-
 extension RFC_8259 {
-    /// Tokens produced by the JSON lexer.
-    ///
-    /// These represent the atomic units of JSON syntax as defined in RFC 8259.
-    /// The lexer produces a stream of these tokens for the parser to consume.
+
     public enum Token: Sendable, Hashable {
-        /// `{` - Begin object (RFC 8259 §4)
+
         case objectStart
 
-        /// `}` - End object (RFC 8259 §4)
         case objectEnd
 
-        /// `[` - Begin array (RFC 8259 §5)
         case arrayStart
 
-        /// `]` - End array (RFC 8259 §5)
         case arrayEnd
 
-        /// `:` - Name separator in objects (RFC 8259 §4)
         case colon
 
-        /// `,` - Value separator (RFC 8259 §4, §5)
         case comma
 
-        /// `null` literal (RFC 8259 §3)
         case null
 
-        /// `true` literal (RFC 8259 §3)
         case `true`
 
-        /// `false` literal (RFC 8259 §3)
         case `false`
 
-        /// String value (RFC 8259 §7)
         case string(String)
 
-        /// Number value (RFC 8259 §6)
         case number(Number)
     }
 }
 
-// MARK: - Token to Kind
-
 extension RFC_8259.Token {
-    /// Converts this token to a Kind for error reporting.
+
     public var kind: Kind {
         switch self {
         case .objectStart: return .objectStart
@@ -64,8 +44,6 @@ extension RFC_8259.Token {
         }
     }
 }
-
-// MARK: - Token CustomStringConvertible
 
 extension RFC_8259.Token: CustomStringConvertible {
     public var description: String {

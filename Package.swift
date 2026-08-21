@@ -1,7 +1,6 @@
 // swift-tools-version: 6.4
 import PackageDescription
 
-// RFC 8259: The JavaScript Object Notation (JSON) Data Interchange Format
 let package = Package(
     name: "swift-rfc-8259",
     platforms: [

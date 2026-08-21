@@ -1,8 +1,3 @@
-/// RFC_8259.Object.Iterator.swift
-/// swift-rfc-8259
-///
-/// Iterator for JSON object key-value pairs
-
 extension RFC_8259.Object {
     public struct Iterator: Swift.IteratorProtocol {
         @usableFromInline

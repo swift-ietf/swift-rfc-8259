@@ -1,23 +1,15 @@
-/// RFC_8259.Error.String.swift
-/// swift-rfc-8259
-///
-/// String parsing sub-errors per RFC 8259 Section 7
-
 public import ASCII_Primitives
 
 extension RFC_8259.Error {
-    /// String parsing errors per RFC 8259 Section 7.
+
     public enum String: Sendable, Hashable {
-        /// Invalid escape sequence (e.g., "\q").
+
         case invalidEscape(ASCII.Code)
 
-        /// Invalid \uXXXX escape (e.g., "\uGGGG").
         case invalidUnicodeEscape
 
-        /// String not terminated with closing quote.
         case unterminated
 
-        /// Unescaped control character (0x00-0x1F).
         case controlCharacter(ASCII.Code)
     }
 }

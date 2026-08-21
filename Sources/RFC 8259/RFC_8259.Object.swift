@@ -1,75 +1,41 @@
-/// RFC_8259.Object.swift
-/// swift-rfc-8259
-///
-/// JSON object type preserving insertion order
-
 extension RFC_8259 {
-    /// A JSON object preserving insertion order.
-    ///
-    /// Per RFC 8259 Section 4:
-    /// > An object is an unordered collection of zero or more name/value pairs
-    ///
-    /// While JSON objects are semantically unordered, this implementation
-    /// preserves insertion order for usability and deterministic output.
-    ///
-    /// ## RFC 8259 Section 4 Grammar
-    ///
-    /// ```
-    /// object = begin-object [ member *( value-separator member ) ] end-object
-    /// member = string name-separator value
-    /// ```
+
     public struct Object: Sendable, Hashable {
-        /// Internal storage preserving insertion order.
+
         @usableFromInline
         internal var _storage: [(key: String, value: Value)]
 
-        /// Creates an empty object.
         public init() {
             _storage = []
         }
 
-        /// Creates an object from key-value pairs.
-        ///
-        /// - Parameter elements: Key-value pairs in insertion order.
         public init(_ elements: [(key: String, value: Value)]) {
             _storage = elements
         }
     }
 }
 
-// MARK: - Object Computed Properties
-
 extension RFC_8259.Object {
-    /// The number of key-value pairs.
+
     public var count: Int {
         _storage.count
     }
 
-    /// True if the object has no members.
     public var isEmpty: Bool {
         _storage.isEmpty
     }
 
-    /// All keys in insertion order.
     public var keys: [String] {
         _storage.map { $0.key }
     }
 
-    /// All values in insertion order.
     public var values: [Value] {
         _storage.map { $0.value }
     }
 }
 
-// MARK: - Object Subscript
-
 extension RFC_8259.Object {
-    /// Access a value by key.
-    ///
-    /// - Parameter key: The key to look up.
-    /// - Returns: The value if present, nil otherwise.
-    ///
-    /// Get is O(n). For frequent lookups, consider converting to a Dictionary.
+
     public subscript(_ key: String) -> RFC_8259.Value? {
         get {
             _storage.first { $0.key == key }?.value
@@ -88,8 +54,6 @@ extension RFC_8259.Object {
     }
 }
 
-// MARK: - Object Sequence
-
 extension RFC_8259.Object: Swift.Sequence {
     public typealias Element = (key: String, value: RFC_8259.Value)
 
@@ -98,8 +62,6 @@ extension RFC_8259.Object: Swift.Sequence {
         Iterator(_storage)
     }
 }
-
-// MARK: - Object Collection
 
 extension RFC_8259.Object: Swift.Collection {
     public typealias Index = Int
@@ -116,15 +78,11 @@ extension RFC_8259.Object: Swift.Collection {
     }
 }
 
-// MARK: - Object ExpressibleByDictionaryLiteral
-
 extension RFC_8259.Object: ExpressibleByDictionaryLiteral {
     public init(dictionaryLiteral elements: (String, RFC_8259.Value)...) {
         _storage = elements.map { (key: $0.0, value: $0.1) }
     }
 }
-
-// MARK: - Object CustomStringConvertible
 
 extension RFC_8259.Object: CustomStringConvertible {
     public var description: String {
@@ -132,8 +90,6 @@ extension RFC_8259.Object: CustomStringConvertible {
         return "{\(pairs.joined(separator: ", "))}"
     }
 }
-
-// MARK: - Object Hashable Fix
 
 extension RFC_8259.Object {
     public func hash(into hasher: inout Hasher) {
