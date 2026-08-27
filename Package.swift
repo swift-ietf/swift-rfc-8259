@@ -15,31 +15,31 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/swift-primitives/swift-standard-library-extensions.git",
+            url: "https://github.com/swift-molecules/swift-standard-library-extensions.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-parser-primitives.git",
+            url: "https://github.com/swift-molecules/swift-parser.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-lexer-primitives.git",
+            url: "https://github.com/swift-molecules/swift-lexer.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-binary-primitives.git",
+            url: "https://github.com/swift-molecules/swift-binary.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-array-primitives.git",
+            url: "https://github.com/swift-molecules/swift-array.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-ascii-primitives.git",
+            url: "https://github.com/swift-molecules/swift-ascii.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-text-primitives.git",
+            url: "https://github.com/swift-molecules/swift-text.git",
             branch: "main"
         ),
     ],
@@ -51,12 +51,12 @@ let package = Package(
                     name: "Standard Library Extensions",
                     package: "swift-standard-library-extensions"
                 ),
-                .product(name: "Parser Primitives", package: "swift-parser-primitives"),
-                .product(name: "Lexer Primitives", package: "swift-lexer-primitives"),
-                .product(name: "Binary Primitives", package: "swift-binary-primitives"),
-                .product(name: "Array Primitives", package: "swift-array-primitives"),
-                .product(name: "ASCII Primitives", package: "swift-ascii-primitives"),
-                .product(name: "Text Primitives", package: "swift-text-primitives"),
+                .product(name: "Parser", package: "swift-parser"),
+                .product(name: "Lexer", package: "swift-lexer"),
+                .product(name: "Binary", package: "swift-binary"),
+                .product(name: "Array", package: "swift-array"),
+                .product(name: "ASCII", package: "swift-ascii"),
+                .product(name: "Text", package: "swift-text"),
             ]
         ),
         .testTarget(

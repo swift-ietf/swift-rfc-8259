@@ -1,4 +1,4 @@
-public import ASCII_Primitives
+public import ASCII
 
 extension RFC_8259.Token {
 

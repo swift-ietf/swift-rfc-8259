@@ -1,5 +1,5 @@
-@_exported import ASCII_Primitives
-@_exported import Binary_Primitives
-@_exported import Lexer_Primitives
-@_exported import Parser_Primitives
-@_exported import Text_Primitives
+@_exported import ASCII
+@_exported import Binary
+@_exported import Lexer
+@_exported import Parser
+@_exported import Text

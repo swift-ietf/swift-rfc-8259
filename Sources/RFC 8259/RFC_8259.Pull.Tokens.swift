@@ -1,7 +1,7 @@
-@_spi(Unsafe) public import Array_Primitives
+@_spi(Unsafe) public import Array
 
 extension RFC_8259.Pull {
-    public enum Tokens: Lexer_Primitives.Lexer.Pull.Tokens {}
+    public enum Tokens: Lexer.Lexer.Pull.Tokens {}
 }
 
 extension RFC_8259.Pull.Tokens {
@@ -28,7 +28,7 @@ extension RFC_8259.Pull.Tokens {
     }
 
     @inlinable
-    public static func skip(whitespace scanner: inout Lexer_Primitives.Lexer.Scanner) {
+    public static func skip(whitespace scanner: inout Lexer.Lexer.Scanner) {
         while let byte = scanner.peek() {
             switch byte {
             case 0x20, 0x09, 0x0A, 0x0D:
@@ -42,7 +42,7 @@ extension RFC_8259.Pull.Tokens {
 
     @inlinable
     public static func next(
-        scanner: inout Lexer_Primitives.Lexer.Scanner,
+        scanner: inout Lexer.Lexer.Scanner,
         depth: inout Int,
         limit: Int
     ) throws(Error) -> Kind? {
@@ -135,7 +135,7 @@ extension RFC_8259.Pull.Tokens {
 
     @inlinable
     public static func skip(
-        value scanner: inout Lexer_Primitives.Lexer.Scanner,
+        value scanner: inout Lexer.Lexer.Scanner,
         depth: inout Int,
         limit: Int
     ) throws(Error) {
@@ -192,7 +192,7 @@ extension RFC_8259.Pull.Tokens {
     @inlinable
     package static func position(
         at cursor: Text.Position,
-        scanner: borrowing Lexer_Primitives.Lexer.Scanner
+        scanner: borrowing Lexer.Lexer.Scanner
     ) -> RFC_8259.Position {
         RFC_8259.Position(offset: cursor, location: scanner.location(at: cursor))
     }
@@ -201,7 +201,7 @@ extension RFC_8259.Pull.Tokens {
 extension RFC_8259.Pull.Tokens {
     @inlinable
     package static func expectLiteral(
-        scanner: inout Lexer_Primitives.Lexer.Scanner,
+        scanner: inout Lexer.Lexer.Scanner,
         _ expected: [ASCII.Code]
     ) throws(Error) {
 
@@ -229,7 +229,7 @@ extension RFC_8259.Pull.Tokens {
 extension RFC_8259.Pull.Tokens {
     @inlinable
     package static func skipString(
-        scanner: inout Lexer_Primitives.Lexer.Scanner
+        scanner: inout Lexer.Lexer.Scanner
     ) throws(Error) {
 
         let startCursor = scanner.position
@@ -309,7 +309,7 @@ extension RFC_8259.Pull.Tokens {
 extension RFC_8259.Pull.Tokens {
     @inlinable
     package static func skipNumber(
-        scanner: inout Lexer_Primitives.Lexer.Scanner
+        scanner: inout Lexer.Lexer.Scanner
     ) throws(Error) {
 
         let startCursor = scanner.position
@@ -372,7 +372,7 @@ extension RFC_8259.Pull.Tokens {
 extension RFC_8259.Pull.Tokens {
     @inlinable
     package static func skipContainerBalanced(
-        scanner: inout Lexer_Primitives.Lexer.Scanner,
+        scanner: inout Lexer.Lexer.Scanner,
         depth: inout Int,
         limit: Int
     ) throws(Error) {
@@ -459,7 +459,7 @@ extension RFC_8259.Pull.Tokens {
 
     @inlinable
     package static func skipContainerBodyBalanced(
-        scanner: inout Lexer_Primitives.Lexer.Scanner,
+        scanner: inout Lexer.Lexer.Scanner,
         depth: inout Int,
         limit: Int
     ) throws(Error) {
