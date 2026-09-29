@@ -1,3 +1,5 @@
+import Byte
+
 extension RFC_8259 {
 
     public struct Number: Sendable, Hashable {
