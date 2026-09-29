@@ -83,11 +83,11 @@ extension RFC_8259.Number {
 
     public init(_ value: Int) {
         let str = String(value)
-        self.init(Int64(value), original: Original(Swift.Array(str.utf8)))
+        self.init(Int64(value), original: Original([Byte](utf8: str)))
     }
 
     public init(_ value: Double) {
         let str = String(value)
-        self.init(value, original: Original(Swift.Array(str.utf8)))
+        self.init(value, original: Original([Byte](utf8: str)))
     }
 }
