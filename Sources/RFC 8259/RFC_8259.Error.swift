@@ -36,7 +36,7 @@ extension RFC_8259.Error: CustomStringConvertible {
             return "Invalid string at \(pos): \(reason)"
 
         case .invalidUTF8(let pos, let byte):
-            return "Invalid UTF-8 byte 0x\(Swift.String(byte, radix: 16)) at \(pos)"
+            return "Invalid UTF-8 byte 0x\(Swift.String(byte.bitPattern, radix: 16)) at \(pos)"
 
         case .depthExceeded(let pos, let limit):
             return "Nesting depth exceeded \(limit) at \(pos)"

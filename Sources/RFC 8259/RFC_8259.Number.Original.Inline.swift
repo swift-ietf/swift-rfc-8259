@@ -5,29 +5,29 @@ extension RFC_8259.Number.Original {
     @usableFromInline
     internal struct Inline: Sendable, Hashable {
 
-        @usableFromInline internal var b0: Byte = 0
-        @usableFromInline internal var b1: Byte = 0
-        @usableFromInline internal var b2: Byte = 0
-        @usableFromInline internal var b3: Byte = 0
-        @usableFromInline internal var b4: Byte = 0
-        @usableFromInline internal var b5: Byte = 0
-        @usableFromInline internal var b6: Byte = 0
-        @usableFromInline internal var b7: Byte = 0
-        @usableFromInline internal var b8: Byte = 0
-        @usableFromInline internal var b9: Byte = 0
-        @usableFromInline internal var b10: Byte = 0
-        @usableFromInline internal var b11: Byte = 0
-        @usableFromInline internal var b12: Byte = 0
-        @usableFromInline internal var b13: Byte = 0
-        @usableFromInline internal var b14: Byte = 0
-        @usableFromInline internal var b15: Byte = 0
-        @usableFromInline internal var b16: Byte = 0
-        @usableFromInline internal var b17: Byte = 0
-        @usableFromInline internal var b18: Byte = 0
-        @usableFromInline internal var b19: Byte = 0
-        @usableFromInline internal var b20: Byte = 0
-        @usableFromInline internal var b21: Byte = 0
-        @usableFromInline internal var b22: Byte = 0
+        @usableFromInline internal var b0: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b1: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b2: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b3: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b4: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b5: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b6: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b7: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b8: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b9: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b10: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b11: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b12: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b13: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b14: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b15: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b16: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b17: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b18: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b19: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b20: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b21: Byte = Byte(bitPattern: 0)
+        @usableFromInline internal var b22: Byte = Byte(bitPattern: 0)
         @usableFromInline internal var count: UInt8 = 0
 
         @usableFromInline
