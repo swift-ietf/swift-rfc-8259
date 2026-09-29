@@ -30,7 +30,7 @@ extension RFC_8259.Pull.Tokens {
     @inlinable
     public static func skip(whitespace scanner: inout Lexer::Lexer.Scanner) {
         while let byte = scanner.peek() {
-            switch byte {
+            switch byte.bitPattern {
             case 0x20, 0x09, 0x0A, 0x0D:
                 scanner.advance()
 
@@ -207,7 +207,7 @@ extension RFC_8259.Pull.Tokens {
 
         let startCursor = scanner.position
         for expectedCode in expected {
-            guard let code: ASCII.Code = scanner.peek() else {
+            guard let code = scanner.peek().map(ASCII.Code.init(unchecked:)) else {
                 throw .unexpectedEndOfInput(
 
                     at: position(at: scanner.position, scanner: scanner),
@@ -249,7 +249,7 @@ extension RFC_8259.Pull.Tokens {
 
             case .reverseSlant:
                 scanner.advance()
-                guard let esc: ASCII.Code = scanner.peek() else {
+                guard let esc = scanner.peek().map(ASCII.Code.init(unchecked:)) else {
 
                     throw .invalidString(
                         at: position(at: scanner.position, scanner: scanner),
@@ -259,7 +259,7 @@ extension RFC_8259.Pull.Tokens {
                 scanner.advance()
                 if esc == .u {
                     for _ in 0..<4 {
-                        guard let b: ASCII.Code = scanner.peek(), b.isHexDigit else {
+                        guard let b = scanner.peek().map(ASCII.Code.init(unchecked:)), b.isHexDigit else {
 
                             throw .invalidString(
                                 at: position(at: scanner.position, scanner: scanner),
@@ -269,13 +269,13 @@ extension RFC_8259.Pull.Tokens {
                         scanner.advance()
                     }
 
-                    if let next: ASCII.Code = scanner.peek(), next == .reverseSlant,
-                        let after: ASCII.Code = scanner.peek(at: .one), after == .u
+                    if let next = scanner.peek().map(ASCII.Code.init(unchecked:)), next == .reverseSlant,
+                        let after = scanner.peek(at: .one).map(ASCII.Code.init(unchecked:)), after == .u
                     {
                         scanner.advance()
                         scanner.advance()
                         for _ in 0..<4 {
-                            guard let b: ASCII.Code = scanner.peek(), b.isHexDigit else {
+                            guard let b = scanner.peek().map(ASCII.Code.init(unchecked:)), b.isHexDigit else {
 
                                 throw .invalidString(
                                     at: position(at: scanner.position, scanner: scanner),
@@ -314,11 +314,11 @@ extension RFC_8259.Pull.Tokens {
 
         let startCursor = scanner.position
 
-        if let b: ASCII.Code = scanner.peek(), b == .hyphen {
+        if let b = scanner.peek().map(ASCII.Code.init(unchecked:)), b == .hyphen {
             scanner.advance()
         }
 
-        guard let firstDigit: ASCII.Code = scanner.peek(), firstDigit.isDigit else {
+        guard let firstDigit = scanner.peek().map(ASCII.Code.init(unchecked:)), firstDigit.isDigit else {
             throw .invalidNumber(
                 at: position(at: startCursor, scanner: scanner),
                 reason: .missingDigits(context: "integer part")
@@ -326,43 +326,43 @@ extension RFC_8259.Pull.Tokens {
         }
         if firstDigit == .`0` {
             scanner.advance()
-            if let next: ASCII.Code = scanner.peek(), next.isDigit {
+            if let next = scanner.peek().map(ASCII.Code.init(unchecked:)), next.isDigit {
                 throw .invalidNumber(
                     at: position(at: startCursor, scanner: scanner),
                     reason: .leadingZeros
                 )
             }
         } else {
-            while let code: ASCII.Code = scanner.peek(), code.isDigit {
+            while let code = scanner.peek().map(ASCII.Code.init(unchecked:)), code.isDigit {
                 scanner.advance()
             }
         }
 
-        if let b: ASCII.Code = scanner.peek(), b == .period {
+        if let b = scanner.peek().map(ASCII.Code.init(unchecked:)), b == .period {
             scanner.advance()
-            guard let firstFracDigit: ASCII.Code = scanner.peek(), firstFracDigit.isDigit else {
+            guard let firstFracDigit = scanner.peek().map(ASCII.Code.init(unchecked:)), firstFracDigit.isDigit else {
                 throw .invalidNumber(
                     at: position(at: startCursor, scanner: scanner),
                     reason: .missingDigits(context: "fraction")
                 )
             }
-            while let code: ASCII.Code = scanner.peek(), code.isDigit {
+            while let code = scanner.peek().map(ASCII.Code.init(unchecked:)), code.isDigit {
                 scanner.advance()
             }
         }
 
-        if let e: ASCII.Code = scanner.peek(), e == .e || e == .E {
+        if let e = scanner.peek().map(ASCII.Code.init(unchecked:)), e == .e || e == .E {
             scanner.advance()
-            if let sign: ASCII.Code = scanner.peek(), sign == .plusSign || sign == .hyphen {
+            if let sign = scanner.peek().map(ASCII.Code.init(unchecked:)), sign == .plusSign || sign == .hyphen {
                 scanner.advance()
             }
-            guard let firstExpDigit: ASCII.Code = scanner.peek(), firstExpDigit.isDigit else {
+            guard let firstExpDigit = scanner.peek().map(ASCII.Code.init(unchecked:)), firstExpDigit.isDigit else {
                 throw .invalidNumber(
                     at: position(at: startCursor, scanner: scanner),
                     reason: .missingDigits(context: "exponent")
                 )
             }
-            while let code: ASCII.Code = scanner.peek(), code.isDigit {
+            while let code = scanner.peek().map(ASCII.Code.init(unchecked:)), code.isDigit {
                 scanner.advance()
             }
         }
@@ -376,7 +376,7 @@ extension RFC_8259.Pull.Tokens {
         depth: inout Int,
         limit: Int
     ) throws(Error) {
-        let opener: ASCII.Code = scanner.peek()!
+        let opener = scanner.peek().map(ASCII.Code.init(unchecked:))!
         let closer: ASCII.Code = opener == .leftBrace ? .rightBrace : .rightBracket
         scanner.advance()
 
@@ -391,7 +391,7 @@ extension RFC_8259.Pull.Tokens {
 
         while balance > 0 {
             skip(whitespace: &scanner)
-            guard let code: ASCII.Code = scanner.peek() else {
+            guard let code = scanner.peek().map(ASCII.Code.init(unchecked:)) else {
                 throw .unexpectedEndOfInput(
 
                     at: position(at: scanner.position, scanner: scanner),
@@ -418,7 +418,7 @@ extension RFC_8259.Pull.Tokens {
                 var innerBalance = 1
                 while innerBalance > 0 {
                     skip(whitespace: &scanner)
-                    guard let ib: ASCII.Code = scanner.peek() else {
+                    guard let ib = scanner.peek().map(ASCII.Code.init(unchecked:)) else {
                         throw .unexpectedEndOfInput(
 
                             at: position(at: scanner.position, scanner: scanner),
@@ -469,7 +469,7 @@ extension RFC_8259.Pull.Tokens {
 
         while depth >= startDepth {
             skip(whitespace: &scanner)
-            guard let code: ASCII.Code = scanner.peek() else {
+            guard let code = scanner.peek().map(ASCII.Code.init(unchecked:)) else {
                 throw .unexpectedEndOfInput(
 
                     at: position(at: scanner.position, scanner: scanner),
