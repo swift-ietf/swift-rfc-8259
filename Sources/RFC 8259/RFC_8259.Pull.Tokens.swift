@@ -257,6 +257,14 @@ extension RFC_8259.Pull.Tokens {
                     )
                 }
                 scanner.advance()
+                guard esc == .u || esc == .quotationMark || esc == .reverseSlant || esc == .solidus
+                    || esc == .b || esc == .f || esc == .n || esc == .r || esc == .t
+                else {
+                    throw .invalidString(
+                        at: position(at: scanner.position, scanner: scanner),
+                        reason: .invalidEscape(esc)
+                    )
+                }
                 if esc == .u {
                     for _ in 0..<4 {
                         guard let b = scanner.peek().map(ASCII.Code.init(unchecked:)), b.isHexDigit else {
