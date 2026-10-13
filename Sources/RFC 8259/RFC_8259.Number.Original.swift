@@ -15,8 +15,8 @@ extension RFC_8259.Number {
 
 extension RFC_8259.Number.Original {
 
-    public init<Bytes: Swift.Collection>(_ bytes: Bytes) where Bytes.Element == Byte {
-        let array = Swift.Array(bytes)
+    public init<Bytes: Swift::Collection>(_ bytes: Bytes) where Bytes.Element == Byte {
+        let array = Swift::Array(bytes)
         if array.count <= 23 {
             self.init(storage: .inline(Inline(array)))
         } else {
@@ -25,7 +25,7 @@ extension RFC_8259.Number.Original {
     }
 
     @inlinable
-    public init(_ bytes: borrowing Swift.Span<Byte>) {
+    public init(_ bytes: borrowing Swift::Span<Byte>) {
         if bytes.count <= 23 {
             self.init(storage: .inline(Inline(bytes)))
         } else {

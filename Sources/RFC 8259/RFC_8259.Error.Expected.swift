@@ -19,7 +19,7 @@ extension RFC_8259.Error {
 }
 
 extension RFC_8259.Error.Expected: CustomStringConvertible {
-    public var description: Swift.String {
+    public var description: Swift::String {
         switch self {
         case .value: return "JSON value"
         case .objectKey: return "object key (string)"

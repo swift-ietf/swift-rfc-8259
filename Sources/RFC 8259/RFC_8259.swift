@@ -3,7 +3,7 @@ public enum RFC_8259 {}
 extension RFC_8259 {
 
     @usableFromInline
-    static let whitespace: Swift.Set<UInt8> = [
+    static let whitespace: Swift::Set<UInt8> = [
         .ascii.sp,
         .ascii.htab,
         .ascii.lf,

@@ -60,7 +60,7 @@ extension RFC_8259.Number.Original {
         }
 
         @usableFromInline
-        internal init(_ bytes: borrowing Swift.Span<Byte>) {
+        internal init(_ bytes: borrowing Swift::Span<Byte>) {
             precondition(bytes.count <= 23, "Inline can hold at most 23 bytes")
             count = UInt8(bytes.count)
             if bytes.count > 0 { b0 = bytes[0] }

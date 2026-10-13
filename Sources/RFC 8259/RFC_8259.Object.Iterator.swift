@@ -1,5 +1,5 @@
 extension RFC_8259.Object {
-    public struct Iterator: Swift.IteratorProtocol {
+    public struct Iterator: Swift::IteratorProtocol {
         @usableFromInline
         internal var base: IndexingIterator<[(key: String, value: RFC_8259.Value)]>
 

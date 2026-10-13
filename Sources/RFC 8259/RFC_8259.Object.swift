@@ -54,7 +54,7 @@ extension RFC_8259.Object {
     }
 }
 
-extension RFC_8259.Object: Swift.Sequence {
+extension RFC_8259.Object: Swift::Sequence {
     public typealias Element = (key: String, value: RFC_8259.Value)
 
     @inlinable
@@ -63,7 +63,7 @@ extension RFC_8259.Object: Swift.Sequence {
     }
 }
 
-extension RFC_8259.Object: Swift.Collection {
+extension RFC_8259.Object: Swift::Collection {
     public typealias Index = Int
 
     public var startIndex: Int { _storage.startIndex }

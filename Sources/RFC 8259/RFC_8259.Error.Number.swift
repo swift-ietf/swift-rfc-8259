@@ -4,7 +4,7 @@ extension RFC_8259.Error {
 
         case leadingZeros
 
-        case missingDigits(context: Swift.String)
+        case missingDigits(context: Swift::String)
 
         case invalidExponent
 
@@ -15,7 +15,7 @@ extension RFC_8259.Error {
 }
 
 extension RFC_8259.Error.Number: CustomStringConvertible {
-    public var description: Swift.String {
+    public var description: Swift::String {
         switch self {
         case .leadingZeros:
             return "leading zeros not permitted"

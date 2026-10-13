@@ -2,7 +2,7 @@ public import Byte
 
 extension RFC_8259 {
 
-    public enum Error: Swift.Error, Sendable, Equatable {
+    public enum Error: Swift::Error, Sendable, Equatable {
 
         case unexpectedToken(at: Position, found: Token.Kind, expected: Expected)
 
@@ -21,7 +21,7 @@ extension RFC_8259 {
 }
 
 extension RFC_8259.Error: CustomStringConvertible {
-    public var description: Swift.String {
+    public var description: Swift::String {
         switch self {
         case .unexpectedToken(let pos, let found, let expected):
             return "Unexpected \(found) at \(pos), expected \(expected)"
@@ -36,7 +36,7 @@ extension RFC_8259.Error: CustomStringConvertible {
             return "Invalid string at \(pos): \(reason)"
 
         case .invalidUTF8(let pos, let byte):
-            return "Invalid UTF-8 byte 0x\(Swift.String(byte.bitPattern, radix: 16)) at \(pos)"
+            return "Invalid UTF-8 byte 0x\(Swift::String(byte.bitPattern, radix: 16)) at \(pos)"
 
         case .depthExceeded(let pos, let limit):
             return "Nesting depth exceeded \(limit) at \(pos)"

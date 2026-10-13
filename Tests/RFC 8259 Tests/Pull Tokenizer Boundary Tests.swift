@@ -4,7 +4,7 @@ import Testing
 
 @testable import RFC_8259
 
-private func drive(_ span: borrowing Swift.Span<Byte>, limit: Int) -> Result<[String], RFC_8259.Error> {
+private func drive(_ span: borrowing Swift::Span<Byte>, limit: Int) -> Result<[String], RFC_8259.Error> {
     var scanner = Lexer.Scanner(span)
     var depth = 0
     var kinds: [String] = []
