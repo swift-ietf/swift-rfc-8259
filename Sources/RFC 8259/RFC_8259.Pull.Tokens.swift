@@ -257,8 +257,9 @@ extension RFC_8259.Pull.Tokens {
                     )
                 }
                 scanner.advance()
-                guard esc == .u || esc == .quotationMark || esc == .reverseSlant || esc == .solidus
-                    || esc == .b || esc == .f || esc == .n || esc == .r || esc == .t
+                guard
+                    esc == .u || esc == .quotationMark || esc == .reverseSlant || esc == .solidus
+                        || esc == .b || esc == .f || esc == .n || esc == .r || esc == .t
                 else {
                     throw .invalidString(
                         at: position(at: scanner.position, scanner: scanner),
@@ -384,7 +385,9 @@ extension RFC_8259.Pull.Tokens {
         depth: inout Int,
         limit: Int
     ) throws(Error) {
-        let opener = scanner.peek().map(ASCII.Code.init(unchecked:))!
+        guard let opener = scanner.peek().map(ASCII.Code.init(unchecked:)) else {
+            preconditionFailure("skipContainerBalanced is called with the scanner at the container opener")
+        }
         let closer: ASCII.Code = opener == .leftBrace ? .rightBrace : .rightBracket
         scanner.advance()
 
