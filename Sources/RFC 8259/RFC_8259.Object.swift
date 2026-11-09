@@ -86,7 +86,7 @@ extension RFC_8259.Object: ExpressibleByDictionaryLiteral {
 
 extension RFC_8259.Object: CustomStringConvertible {
     public var description: String {
-        let pairs = _storage.map { "\"\($0.key)\": \($0.value)" }
+        let pairs = _storage.map { "\(RFC_8259.quoted($0.key)): \($0.value)" }
         return "{\(pairs.joined(separator: ", "))}"
     }
 }

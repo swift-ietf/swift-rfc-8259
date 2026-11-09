@@ -120,18 +120,7 @@ extension RFC_8259.Value: CustomStringConvertible {
             return n.description
 
         case .string(let s):
-
-            var escaped = ""
-            for char in s {
-                if char == "\\" {
-                    escaped += "\\\\"
-                } else if char == "\"" {
-                    escaped += "\\\""
-                } else {
-                    escaped.append(char)
-                }
-            }
-            return "\"\(escaped)\""
+            return RFC_8259.quoted(s)
 
         case .array(let a):
             return a.description

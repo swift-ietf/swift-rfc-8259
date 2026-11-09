@@ -106,5 +106,23 @@ extension `RFC_8259 Tests` {
                 Issue.record("Expected .unexpectedEndOfInput")
             }
         }
+
+        @Test
+        func `Value.string description escapes control characters`() {
+            let value: RFC_8259.Value = .string("a\"b\\c\n\r\t\u{08}\u{0C}\u{00}\u{1F}\r\nd")
+            #expect(value.description == #""a\"b\\c\n\r\t\b\f\u0000\u001F\r\nd""#)
+        }
+
+        @Test
+        func `Object description escapes keys`() {
+            let object: RFC_8259.Object = ["k\"\n\u{01}": .string("v")]
+            #expect(object.description == #"{"k\"\n\u0001": "v"}"#)
+        }
+
+        @Test
+        func `Token.string description escapes control characters`() {
+            let token: RFC_8259.Token = .string("x\ty")
+            #expect(token.description == #""x\ty""#)
+        }
     }
 }

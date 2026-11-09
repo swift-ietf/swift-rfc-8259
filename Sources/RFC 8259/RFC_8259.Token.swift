@@ -57,7 +57,7 @@ extension RFC_8259.Token: CustomStringConvertible {
         case .null: return "null"
         case .true: return "true"
         case .false: return "false"
-        case .string(let s): return "\"\(s)\""
+        case .string(let s): return RFC_8259.quoted(s)
         case .number(let n): return n.description
         }
     }
