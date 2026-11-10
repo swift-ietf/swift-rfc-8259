@@ -42,6 +42,19 @@ let package = Package(
             url: "https://github.com/swift-atoms/swift-text.git",
             branch: "main"
         ),
+        .package(url: "https://github.com/swift-atoms/swift-buffer.git", branch: "main"),
+        .package(url: "https://github.com/swift-molecules/swift-buffer-linear.git", branch: "main"),
+        .package(url: "https://github.com/swift-atoms/swift-index.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-atoms/swift-storage.git",
+            branch: "main",
+            traits: ["Generational", "Memory"]
+        ),
+        .package(
+            url: "https://github.com/swift-molecules/swift-memory-allocation.git",
+            branch: "main",
+            traits: ["MemorySmall", "MemoryAllocatorArena", "MemoryInline"]
+        ),
     ],
     targets: [
         .target(
@@ -57,6 +70,14 @@ let package = Package(
                 .product(name: "Array", package: "swift-array"),
                 .product(name: "ASCII", package: "swift-ascii"),
                 .product(name: "Text", package: "swift-text"),
+                .product(name: "Array Small Primitive", package: "swift-array"),
+                .product(name: "Buffer", package: "swift-buffer"),
+                .product(name: "Buffer Linear", package: "swift-buffer-linear"),
+                .product(name: "Buffer Linear Primitive", package: "swift-buffer-linear"),
+                .product(name: "Index", package: "swift-index"),
+                .product(name: "Storage", package: "swift-storage"),
+                .product(name: "Memory Allocator", package: "swift-memory-allocation"),
+                .product(name: "Memory Small", package: "swift-memory-allocation"),
             ]
         ),
         .testTarget(
